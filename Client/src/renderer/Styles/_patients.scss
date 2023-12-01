@@ -1,0 +1,32 @@
+.patients{
+  @include flexcolumn;
+  padding: 2rem;
+  padding-top: 14vh;
+  padding-left: 6rem;
+  width: 100%;
+  gap: 1.5rem;
+  .header-btns{
+    @include flexCenter;
+    gap: 2rem;
+    padding-left: 3rem;
+    padding-right: 3rem;
+  }
+}
+
+.patient-detail{
+  @include flexcolumn;
+  padding: 2rem;
+  padding-top: 14vh;
+  width: 100%;
+  gap: 1.5rem;
+  position: relative;
+  padding-left: 6rem
+}
+
+.surgery-list{
+  @include flexcolumn;
+  padding: 2rem;
+  width: 100%;
+  gap: 1.5rem;
+}
+

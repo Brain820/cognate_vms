@@ -1,0 +1,77 @@
+.content{
+  width: 100%;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  padding: 2rem;
+}
+
+.dashboard{
+  display: grid;
+  grid-template-columns: 4fr 1fr;
+  gap: 1rem;
+  padding: 1.5rem;
+  padding-top: 6rem;
+  padding-left: 6rem;
+}
+
+.cctv{
+  width: 90vw;
+  height: 100%;
+  .rtsp{
+    :is(video){
+      width: 100%;
+      height: 100%;
+    }
+  }
+  &-options{
+      padding: 0rem 1rem;
+      width: 100%;
+      background: grey;
+      @include spaceBw;
+      .status{
+          @include spaceBw;
+          gap: 1rem;
+      }
+  }
+}
+
+
+.data{
+  height: 100%;
+  // padding-top: 1rem;
+  width: 20%;
+  display: flex;
+  // align-items: center;
+  justify-content: space-between;
+  flex-direction: column;
+  // gap: 0.5rem;
+  &-box{
+      @include shadow;
+      transition: all 1s;
+      &:hover{
+        cursor: pointer;
+        transform: scale(0.95);
+      }
+  }
+}
+
+//
+@media screen and (max-width: 1024px) {
+  .dashboard {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media screen and (max-width: 768px) {
+  .dashboard {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .dashboard {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+}

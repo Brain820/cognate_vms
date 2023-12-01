@@ -1,0 +1,25 @@
+.profile{
+  @include flexcolumn;
+  padding: 2rem;
+  width: 100%;
+  gap: 1.5rem;
+  padding-left: 6rem;
+}
+
+.profile-container{
+  display: grid;
+  grid-template-columns: 2fr 4fr;
+  .profile-data{
+    @include flexcolumn;
+    @include flexCenter;
+    justify-content: flex-start;
+    gap: 2rem;
+    padding-top: 2rem;
+    &-container{
+      width: 50%;
+      @include flexcolumn;
+      @include flexCenter;
+      gap: 1rem;
+    }
+  }
+}

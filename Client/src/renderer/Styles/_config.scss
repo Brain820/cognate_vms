@@ -1,0 +1,56 @@
+$primary-color: red;
+$primary-light-color: white;
+
+@mixin flexCenter {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@mixin gradientbg {
+  background: linear-gradient(
+    to bottom,
+    rgba(216, 25, 36, 1),
+    rgba(0, 57, 117, 1)
+  );
+}
+
+@mixin spaceBw {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+@mixin spaceAr {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+
+@mixin flexcolumn {
+  display: flex;
+  flex-direction: column;
+}
+
+@mixin textLeft {
+  text-align: left;
+}
+@mixin whitebg {
+  background: $primary-light-color;
+}
+
+@mixin shadow {
+  box-shadow: 0px 1px 4px 0px rgba(0, 0, 0, 0.25);
+}
+
+@mixin fullwidth{
+    width: 100%;
+}
+
+@mixin textblack {
+  color: black;
+}
+
+@mixin customShadow($left: 2px, $right: 2px, $top: 0, $bottom: 0, $blur: 4px, $color: rgba(0, 0, 0, 0.1)) {
+  box-shadow: $left $right $blur $color;
+}

@@ -1,0 +1,64 @@
+.sidebar{
+  @include flexcolumn;
+  justify-content: space-between;
+  // @include shadow;
+  @include customShadow;
+  padding-top: 1rem;
+  // height: 90vh;
+  // height: 100%;
+  // top: 6.5rem;
+  // position: sticky;
+  position: fixed;
+  width: 4rem;
+  gap: 1rem;
+  top: 10vh;
+  height: 90vh;
+  margin-right: 1rem;
+
+
+  &-top{
+    @include flexcolumn;
+    width: 4rem;
+    gap: 1rem;
+  }
+
+  .active{
+    background: rgb(220, 219, 219);
+    border-right: 0.3rem solid red;
+  }
+
+  .tooltiptext{
+    visibility: hidden;
+    width: 120px;
+    color: black;
+    position: absolute;
+    left: 4.5rem;
+    z-index: 1000;
+    opacity: 100%;
+    font-size: 1rem;
+  }
+
+
+  &-link{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    width: 100%;
+    transition: all 0.5s;
+  }
+
+  &-link:hover{
+    background: rgb(255, 94, 94);
+    color: white;
+    .tooltiptext{
+      transition: all 0.5s;
+      visibility: visible;
+      border-radius: 1rem;
+      z-index: 1000;
+      background: grey;
+      color: white;
+      text-align: center;
+    }
+  }
+}

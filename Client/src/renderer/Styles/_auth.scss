@@ -1,0 +1,16 @@
+.login{
+  @include gradientbg;
+  width: 100%;
+  height: 100vh;
+  .heading{
+      @include textLeft;
+      letter-spacing: 0.1rem;
+      font-weight: lighter;
+      margin: 0.8rem 0;
+  }
+}
+
+.logo{
+  margin: auto;
+}
+

@@ -1,0 +1,29 @@
+@import 'config';
+@import 'header';
+@import 'sidebar';
+@import 'patients';
+@import 'doctor';
+@import 'auth';
+@import 'home';
+@import 'profile';
+@import 'surgery';
+@import 'receipt';
+
+*{
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.te{
+  display: flex;
+  gap: 1rem;
+}
+
+
+ .header > img {
+  height: 3rem;
+  width: 10rem;
+  object-fit: cover;
+ }
+
