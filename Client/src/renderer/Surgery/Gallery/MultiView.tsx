@@ -1,15 +1,21 @@
 /* eslint-disable react/destructuring-assignment */
-import { Box, Button, ButtonGroup, Image, useToast } from '@chakra-ui/react';
+import {
+  Box,
+  Button,
+  ButtonGroup,
+  Heading,
+  Image,
+  useToast,
+} from '@chakra-ui/react';
 import { useState } from 'react';
 
 import CancelIcon from '@mui/icons-material/Cancel';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import CameraAltIcon from '@mui/icons-material/CameraAlt';
-import AddCommentIcon from '@mui/icons-material/AddComment';
-import ForumIcon from '@mui/icons-material/Forum';
 import axios from 'axios';
 import { useCompany } from '../../Company/CompanyContext';
+import { addSurgeryImage } from '../../Config/api';
 
 function MultiView(props) {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -68,13 +74,14 @@ function MultiView(props) {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${accessToken}`,
   };
+  const path = require('path');
   const handleTakeScreenshot = async () => {
     const multiViewGallery = document.querySelector('.multi-view-gallery');
 
     if (multiViewGallery) {
       const canvas = document.createElement('canvas');
       const context = canvas.getContext('2d');
-      canvas.width = multiViewGallery.offsetWidth * 2; // Assuming both left and right images are side by side
+      canvas.width = multiViewGallery.offsetWidth * 2;
       canvas.height = multiViewGallery.offsetHeight;
 
       // Draw left image
@@ -109,15 +116,23 @@ function MultiView(props) {
           }
         };
 
-        const directoryPath = `${company.storage_path}\\patient${props.patientId}\\surgery${props.surgeryId}\\compareSnapshots`;
+        // const directoryPath = `${company.storage_path}\\patient${props.patientId}\\surgery${props.surgeryId}\\compareSnapshots`;
+        const directoryPath = path.join(
+          `${company.storage_path}`,
+          '/patient' + `${props.patientId}`,
+          `surgery${props.surgeryId}`,
+          'compareSnapshots',
+        );
         await makeDirectory(directoryPath);
-
-        const newImagePath = `${directoryPath}\\${formattedDate}_screenshot.png`;
+        const newImagePath = path.join(
+          `${directoryPath}`,
+          `/${formattedDate}P${props.patientId}S${props.surgeryId}` + 'C.png',
+        );
         const imageBuffer = Buffer.from(imageDataUrl.split(',')[1], 'base64');
         await fs.writeFile(newImagePath, imageBuffer);
 
-        const response = await axios.post(
-          `http://127.0.0.1:8000/api/patients/add-surgery-image/${props.surgeryId}/`,
+        await axios.post(
+          addSurgeryImage(props.surgeryId),
           {
             image_file: newImagePath,
             surgery: props.surgeryId,
@@ -125,20 +140,16 @@ function MultiView(props) {
           },
           { headers },
         );
-        console.log(props.surgeryId)
-        console.log(
-          'Screenshot',
-          response.status === 200 ? 'uploaded successfully' : 'upload error',
-        );
-        console.log('Saved locally:', newImagePath);
         setIsScreenshotTaken(true);
         toast({
           title: 'Screenshot taken',
-          description: 'Screenshot saved successfully',
+          // description: 'Screenshot saved successfully',
           status: 'success',
           duration: 1000,
           isClosable: true,
+          position: 'top',
         });
+        props.getSnaps();
       } catch (error) {
         console.error('Error saving or uploading screenshot:', error.message);
       }
@@ -160,7 +171,12 @@ function MultiView(props) {
           <Box className="left-image" height="100vh" width="50vw">
             <Box className="left-image-img">
               {props.snaps.map(() => (
-                <Image src={props.snaps[currentIndex].image_file} alt="" />
+                  <Image
+                    src={
+                      'file://' + `${props.snaps[currentIndex].image_file}`
+                    }
+                    alt=""
+                  />
               ))}
             </Box>
             <ButtonGroup
@@ -192,7 +208,12 @@ function MultiView(props) {
           <Box className="right-image" height="100vh" width="50vw">
             <Box className="right-image-img">
               {props.snaps.map(() => (
-                <Image src={props.snaps[currentRightIndex].image_file} alt="" />
+                <Image
+                  src={
+                    'file://' + `${props.snaps[currentRightIndex].image_file}`
+                  }
+                  alt=""
+                />
               ))}
             </Box>
             <ButtonGroup
@@ -233,19 +254,15 @@ function MultiView(props) {
             alignItems="center"
             justifyContent="center"
           >
-            {/* <Button size="sm">
-              <AddCommentIcon fontSize="1rem" />
-            </Button> */}
             <Button size="sm" onClick={handleTakeScreenshot}>
               <CameraAltIcon fontSize="1rem" />
             </Button>
-            {/* <Button size="sm">
-              <ForumIcon fontSize="1rem" />
-            </Button> */}
           </ButtonGroup>
         </Box>
       ) : (
-        <h2>hi</h2>
+        <Heading>
+          Multiview is Currently not available, Please try again after some time
+        </Heading>
       )}
     </Box>
   );

@@ -19,11 +19,10 @@ import {
 
 import axios from 'axios';
 
-import { useState } from 'react';
-import { addPatient } from '../../Config/api';
-import useAuth from '../../User/Components/useAuth';
+import { useEffect, useState } from 'react';
+import { ListOfPatients, addPatient } from '../../Config/api';
 
-function AddPatient() {
+function AddPatient({patientAdd}) {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [inputs, setInputs] = useState({
     hospital_patient_id: '',
@@ -39,7 +38,6 @@ function AddPatient() {
     setInputs((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
   const toast = useToast();
-  const { auth } = useAuth();
   const handleAdd = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
     try {
@@ -49,13 +47,23 @@ function AddPatient() {
         Authorization: `Bearer ${accessToken}`,
       };
       await axios.post(addPatient(), inputs, { headers });
+      patientAdd();
       toast({
         title: 'Patient Has Been Added',
         status: 'success',
         isClosable: true,
+        duration: 3000,
+        position: 'top',
       });
-      onClose();
-    } catch (err) {
+    onClose();
+  } catch (err) {
+      toast({
+        title: 'There Might Be Some Error, Please check & Try Again',
+        status: 'error',
+        isClosable: true,
+        duration: 3000,
+        position: 'top',
+      });
       console.log(err);
     }
   };
@@ -73,44 +81,47 @@ function AddPatient() {
       </Button>
       <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
-        <ModalContent>
+        <ModalContent >
           <ModalHeader>Add Patient</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>
-            <FormControl mt={4}>
+            <FormControl>
+            <FormLabel pl={2}>Hospital Patient Id</FormLabel>
               <Input
-                placeholder="Hospital Patient Id"
+                placeholder="HS01"
                 name="hospital_patient_id"
                 onChange={handleChange}
               />
             </FormControl>
-            <FormControl mt={4}>
+            <FormControl mt={4} isRequired>
+            <FormLabel pl={2}>First Name</FormLabel>
               <Input
-                placeholder="First Name"
+                placeholder="Virat"
                 name="first_name"
                 onChange={handleChange}
               />
             </FormControl>
 
-            <FormControl mt={4}>
+            <FormControl mt={4} isRequired>
+            <FormLabel pl={2}>Last Name</FormLabel>
               <Input
-                placeholder="Last Name"
+                placeholder="Gupta"
                 name="last_name"
                 onChange={handleChange}
               />
             </FormControl>
 
-            <FormControl mt={4}>
+            <FormControl mt={4} isRequired>
               <FormLabel pl={2}>Date of Birth</FormLabel>
               <Input
-                placeholder="Date of Birth"
                 name="date_of_birth"
                 onChange={handleChange}
                 type="date"
               />
             </FormControl>
 
-            <FormControl mt={4}>
+            <FormControl mt={4} isRequired>
+            <FormLabel pl={2}>Gender</FormLabel>
               <Select
                 placeholder="Select Gender"
                 name="gender"
@@ -122,17 +133,19 @@ function AddPatient() {
               </Select>
             </FormControl>
 
-            <FormControl mt={4}>
+            <FormControl mt={4} isRequired>
+            <FormLabel pl={2}>Mobile Number</FormLabel>
               <Input
-                placeholder="Mobile Number"
+                placeholder="9999999999"
                 name="mobile_number"
                 onChange={handleChange}
               />
             </FormControl>
 
-            <FormControl mt={4}>
+            <FormControl mt={4} isRequired>
+            <FormLabel pl={2}>Address</FormLabel>
               <Textarea
-                placeholder="Address"
+                placeholder="Patient's Residential Address"
                 name="address"
                 onChange={handleChange}
               />

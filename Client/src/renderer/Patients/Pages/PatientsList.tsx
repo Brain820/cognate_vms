@@ -1,4 +1,4 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 
@@ -16,26 +16,15 @@ import {
 } from '@chakra-ui/react';
 
 import OpenInNewIcon from '@mui/icons-material/OpenInNew';
-import { net } from 'electron';
 import AddPatient from '../Components/AddPatient';
 import { ListOfPatients } from '../../Config/api';
-import useAuth from '../../User/Components/useAuth';
 
 function PatientsList() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
-  const [patients, setPatients] = useState(
-    JSON.parse(localStorage.getItem('patients')) || [],
-  );
-  const { auth } = useAuth();
-
-  useEffect(() => {
-    // fetchData();
-    localStorage.setItem('patients', JSON.stringify(patients));
-  }, [patients]);
+  const [patients, setPatients] = useState([]);
   const fetchData = async () => {
     try {
-      // const accessToken = auth?.access_token;
       const accessToken = localStorage.getItem('token');
       const headers = {
         'Content-Type': 'application/json',
@@ -48,7 +37,9 @@ function PatientsList() {
       console.error('Error fetching data:', error);
     }
   };
-  fetchData();
+  useEffect(() => {
+    fetchData();
+  }, []);
   return (
     <Box className="patients">
       <Box className="header-btns">
@@ -56,7 +47,7 @@ function PatientsList() {
           placeholder="Search Patients Here"
           onChange={(e) => setSearch(e.target.value)}
         />
-        <AddPatient />
+        <AddPatient patientAdd={fetchData} />
       </Box>
       <TableContainer>
         <Table variant="striped">

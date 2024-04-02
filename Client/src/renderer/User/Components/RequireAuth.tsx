@@ -17,7 +17,7 @@ function Layout() {
 }
 
 function RequireAuth() {
-  const { auth } = useAuth();
+  // const { auth } = useAuth();
   // return localStorage.getItem('token') ? <Layout /> : <Navigate to="/login" />;
   // Checking if the token is expired
   const isTokenExpired = () => {

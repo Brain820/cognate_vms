@@ -19,14 +19,11 @@ import {
 
 import axios from 'axios';
 
-import { useState } from 'react';
-// import { addSurgery } from '../Config/api';
+import { useEffect, useState } from 'react';
 import { addSurgery } from '../../Config/api';
-import useAuth from '../../User/Components/useAuth';
-import { Label } from '@mui/icons-material';
 
 function AddSurgery(props) {
-  const { pat } = props;
+  const { pat, getSurgery } = props;
   const { isOpen, onOpen, onClose } = useDisclosure();
   const [inputs, setInputs] = useState({
     surgeon_name: '',
@@ -42,7 +39,6 @@ function AddSurgery(props) {
   const handleChange = (e) => {
     setInputs((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
-  const { auth } = useAuth();
   const toast = useToast();
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -61,9 +57,19 @@ function AddSurgery(props) {
         title: 'Surgery Has Been Created Successfully!',
         status: 'success',
         isClosable: true,
+        duration: 3000,
+        position: 'top',
       });
+      getSurgery();
       onClose();
     } catch (err) {
+      toast({
+        title: 'There Might Be Some Error, Please check & Try Again',
+        status: 'error',
+        isClosable: true,
+        duration: 3000,
+        position: 'top',
+      });
       console.log(err);
     }
   };
@@ -85,25 +91,28 @@ function AddSurgery(props) {
           <ModalHeader>Add Surgery</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>
-            <FormControl mt={4}>
+            <FormControl mt={4} isRequired>
+            <FormLabel pl={2}>Surgeon Name</FormLabel>
               <Input
-                placeholder="Surgeon Name"
+                placeholder="Dr.Harpreet Singh"
                 name="surgeon_name"
                 onChange={handleChange}
               />
             </FormControl>
 
-            <FormControl mt={4}>
+            <FormControl mt={4} isRequired>
+            <FormLabel pl={2}>Surgery Type</FormLabel>
               <Input
-                placeholder="Surgery Type"
+                // placeholder=""
                 name="surgery_type"
                 onChange={handleChange}
               />
             </FormControl>
 
-            <FormControl mt={4}>
+            <FormControl mt={4} isRequired>
+            <FormLabel pl={2}>Body Part</FormLabel>
               <Input
-                placeholder="Body Part"
+                placeholder="Knee/Shoulder/Elbow etc"
                 name="body_part"
                 onChange={handleChange}
               />
@@ -124,7 +133,7 @@ function AddSurgery(props) {
               />
             </FormControl>
 
-            <FormControl mt={4}>
+            <FormControl mt={4} isRequired>
               <FormLabel pl={2}>Surgery Date</FormLabel>
               <Input
                 placeholder="Surgery Date"

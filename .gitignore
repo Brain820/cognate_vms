@@ -1,0 +1,37 @@
+# Logs
+Client/logs
+*.Client/log
+
+# Runtime data
+pids
+*.Client/pid
+*Client/.seed
+
+# Coverage directory used by tools like istanbul
+Client/coverage
+.Client/eslintcache
+
+# Dependency directory
+# https://www.npmjs.org/doc/misc/npm-faq.html#should-i-check-my-node_modules-folder-into-git
+Client/node_modules
+
+# OSX
+.Client/DS_Store
+
+Client/release/app/dist
+Client/release/build
+.Client/erb/dll
+
+.Client/idea
+Client/npm-debug.log.*
+*.Client/css.d.ts
+*.Client/sass.d.ts
+*.Client/scss.d.ts
+
+Client/dist
+# renderer/Config
+ot-env/
+release
+Client/src.zip
+rtsp/node_modules
+rtsp/build

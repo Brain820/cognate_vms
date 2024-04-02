@@ -1,6 +1,6 @@
 /* eslint-disable jsx-a11y/media-has-caption */
 import React, { useRef, useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import {
   Box,
@@ -34,26 +34,36 @@ import {
   PlayArrow as PlayArrowIcon,
 } from '@mui/icons-material';
 import DeleteIcon from '@mui/icons-material/Delete';
+import PlayCircleIcon from '@mui/icons-material/PlayCircle';
+import PauseCircleFilledIcon from '@mui/icons-material/PauseCircleFilled';
 import EditIcon from '@mui/icons-material/Edit';
 
-import useAuth from '../../User/Components/useAuth';
+
+import fixWebmDuration from "fix-webm-duration";
 import VideoSeekBar from '../Gallery/VideoSeekbar';
 import VideoTimeLapse from '../Gallery/VideoTimeLapse';
-import { getCommentOnSurgeryVedio } from '../../Config/api';
+import { createWriteStream} from 'fs';
+import {
+  addCommentOnSurgeryVedio,
+  addSurgeryImage,
+  addSurgeryVedio,
+  deleteCommentOnSurgeryVedio,
+  editCommentOnSurgeryVedio,
+  getCommentOnSurgeryVedio,
+} from '../../Config/api';
 import { useCompany } from '../../Company/CompanyContext';
 
 function Vedios() {
   // State And Variable Declaration
   const { company } = useCompany();
-  const { auth } = useAuth();
-  const { videoId } = useParams();
+  // const { auth } = useAuth();
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
   const navigate = useNavigate();
   const videoRef = React.useRef(null);
   const canvasRef = useRef(null);
   const zoomLevelRef = useRef(100);
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(true);
   const [rotationAngle, setRotationAngle] = useState(0);
   const [zoomLevel, setZoomLevel] = useState(100);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -66,10 +76,14 @@ function Vedios() {
   const [viewCommentModal, setViewCommentModal] = useState(false);
   const [comments, setComments] = useState([]);
   const [currentTime, setCurrentTime] = useState(0);
+  const Recording_Time = useRef(0);
   const [duration, setDuration] = useState(0);
-  const data =
-    videoId && videoId.includes(',') ? videoId.split(',') : [videoId];
-  const [address, id, surgeryId, patientId] = data;
+  const [temp] = useSearchParams();
+  const surgeryId = temp.get('surgery_id');
+  const patientId = temp.get('patient_id');
+  const params = useParams();
+  const id = params.videoId;
+
 
   const accessToken = localStorage.getItem('token');
   const headers = {
@@ -82,28 +96,38 @@ function Vedios() {
   )
     .toString()
     .padStart(2, '0')}${currentDate
-    .getDate()
-    .toString()
-    .padStart(2, '0')}${currentDate
-    .getHours()
-    .toString()
-    .padStart(2, '0')}${currentDate
-    .getMinutes()
-    .toString()
-    .padStart(2, '0')}${currentDate.getSeconds().toString().padStart(2, '0')}`;
+      .getDate()
+      .toString()
+      .padStart(2, '0')}${currentDate
+        .getHours()
+        .toString()
+        .padStart(2, '0')}${currentDate
+          .getMinutes()
+          .toString()
+          .padStart(2, '0')}${currentDate.getSeconds().toString().padStart(2, '0')}`;
 
   // Event Handlers Start
+
+
   const handlePause = () => {
+    console.log(videoRef.current.duration)
     if (videoRef.current) {
       videoRef.current.pause();
       setIsPlaying(false);
+      if (mediaRecorderRef.current) {
+        if (mediaRecorderRef.current.state === 'recording') {
+          mediaRecorderRef.current.pause();
+          setIsClipping(false);
+      }
     }
+  }
   };
 
   const handlePlay = () => {
     if (videoRef.current) {
       videoRef.current.play();
       setIsPlaying(true);
+      
     }
   };
   const handleChange = (e: { target: { name: any; value: any } }) => {
@@ -113,7 +137,7 @@ function Vedios() {
     e.preventDefault();
     try {
       await axios.post(
-        `http://127.0.0.1:8000/api/patients/add-comment-on-surgery-video/${id}/`,
+        addCommentOnSurgeryVedio(id),
         { ...inputs, video: id },
         { headers },
       );
@@ -166,6 +190,8 @@ function Vedios() {
     updateZoomLevel(zoomLevel + 10);
   };
 
+  const fs = require('fs').promises;
+  const path = require('path');
   const handleTakeScreenshot = async () => {
     const videoElement = videoRef.current;
 
@@ -177,7 +203,6 @@ function Vedios() {
       context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
       const imageDataUrl = canvas.toDataURL('image/png');
 
-      const fs = require('fs').promises;
       try {
         const makeDirectory = async (path) => {
           try {
@@ -186,24 +211,25 @@ function Vedios() {
             await fs.mkdir(path, { recursive: true });
           }
         };
-
-        const directoryPath = `${company.storage_path}\\patient${patientId}\\surgery${surgeryId}\\snapshots`;
+        const directoryPath = path.join(
+          `${company.storage_path}`,
+          `/patient${patientId}`,
+          `surgery${surgeryId}`,
+          'snapshots',
+        );
         await makeDirectory(directoryPath);
-
-        const newImagePath = `${directoryPath}\\${formattedDate}_screenshot.png`;
+        const newImagePath = path.join(
+          `${directoryPath}`,
+          `/${formattedDate}.png`,
+        );
         const imageBuffer = Buffer.from(imageDataUrl.split(',')[1], 'base64');
         await fs.writeFile(newImagePath, imageBuffer);
 
         const response = await axios.post(
-          `http://127.0.0.1:8000/api/patients/add-surgery-image/${surgeryId}/`,
+          addSurgeryImage(surgeryId),
           { image_file: newImagePath, surgery: surgeryId, patient: patientId },
           { headers },
         );
-        console.log(
-          'Screenshot',
-          response.status === 200 ? 'uploaded successfully' : 'upload error',
-        );
-        console.log('Saved locally:', newImagePath);
         setIsScreenshotTaken(true);
         toast({
           title: 'Screenshot taken',
@@ -211,6 +237,7 @@ function Vedios() {
           status: 'success',
           duration: 1000,
           isClosable: true,
+          position: 'top',
         });
       } catch (error) {
         console.error('Error saving or uploading screenshot:', error.message);
@@ -230,7 +257,7 @@ function Vedios() {
   const handleDeleteComment = async (commentId) => {
     try {
       const response = await axios.delete(
-        `http://localhost:8000/api/patients/delete-comment-on-surgery-video/${commentId}`,
+        deleteCommentOnSurgeryVedio(commentId),
         { headers },
       );
 
@@ -249,11 +276,6 @@ function Vedios() {
   useEffect(() => {
     const getComments = async () => {
       try {
-        const accessToken = localStorage.getItem('token');
-        const headers = {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        };
         if (id) {
           const response = await axios.get(getCommentOnSurgeryVedio(id), {
             headers,
@@ -270,7 +292,7 @@ function Vedios() {
       }
     };
     getComments();
-  }, [auth?.access_token, id, comments]);
+  }, [id, viewCommentModal]);
 
   useEffect(() => {
     const videoElement = videoRef.current;
@@ -295,8 +317,207 @@ function Vedios() {
         );
       };
     }
-    return;
   }, [videoRef]);
+
+  const handleStartTimeChange = (e) => {
+    setClipTimes((prev) => ({ ...prev, startTime: e.target.value }));
+  };
+
+  const handleEndTimeChange = (e) => {
+    setClipTimes((prev) => ({ ...prev, endTime: e.target.value }));
+  };
+  const formatTime = (time) => {
+    const hours = Math.floor(time / 3600);
+    const minutes = Math.floor((time % 3600) / 60);
+    const seconds = Math.floor(time % 60);
+
+    const formatNumber = (num) => num.toString().padStart(2, '0');
+
+    return `${formatNumber(hours)}:${formatNumber(minutes)}:${formatNumber(
+      seconds,
+    )}`;
+  };
+
+  const [commentInputs, setCommentInputs] = useState({
+    comment_text: '',
+    headline: '',
+    video: id,
+  });
+  const [editingComment, setEditingComment] = useState(null);
+  const handleCommentChange = (e) => {
+    setCommentInputs((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  }
+  const handleUpdateComment = async (commentId) => {
+    try {
+      await axios.put(
+        editCommentOnSurgeryVedio(commentId),
+        { ...commentInputs },
+        { headers },
+      );
+      toast({
+        title: 'Comment Updated Successfully!',
+        status: 'success',
+        isClosable: true,
+        position: 'top',
+      });
+      setEditingComment(null);
+      handleCloseViewCommentModal();
+    } catch (err) {
+      console.log(err);
+    }
+  }
+
+  // Vedio Clip Section Start
+
+  const [startClip, setStartClip] = useState(false);
+  const [clipTimes, setClipTimes] = useState({ startTime: 0, endTime: 0 });
+  let outputFileName = '';
+  const mediaRecorderRef = useRef(null);
+
+  async function handleClip() {
+    const makeDirectory = async (dir_path) => {
+      try {
+        await fs.access(dir_path);
+      } catch (error) {
+        await fs.mkdir(dir_path, { recursive: true });
+      }
+    };
+
+    const directoryPath = path.join(
+      `${company.storage_path}`,
+      '/patient' + `${patientId}`,
+      'surgery' + `${surgeryId}`,
+      'clippedVedio',
+    );
+    await makeDirectory(directoryPath);
+    outputFileName = path.join(
+      `${directoryPath}`,
+      `/${formattedDate}` + '_clip.webm',
+    );
+    const startTime = parseFloat(clipTimes.startTime);
+    const endTime = parseFloat(clipTimes.endTime);
+
+    if (!mediaRecorderRef.current) {
+      const storageStream = createWriteStream(outputFileName, { flags: 'a' });
+      if (videoRef.current.paused==false){
+        const options={type: 'video/webm',
+                       };
+        // const options = {
+                      //   mimeType: 'video/mp4; codecs="avc1.42E01E, mp4a.40.2"',
+                      // };
+        mediaRecorderRef.current = new MediaRecorder(videoRef.current.captureStream(),options);
+
+        let mediadata=[];
+        mediaRecorderRef.current.ondataavailable = async (event) => {
+          // mediadata.push(event.data);
+          Recording_Time.current += 1;
+          // let v_duration=Recording_Time.current*1000
+          // const blob = new Blob([event.data], { type: 'video/webm'});
+          // fixWebmDuration(blob, Recording_Time.current*1000,{logger: false}).then (async function (fixedBlob) {
+          //   console.log('fix blogsize',fixedBlob.size)
+          //   const fileBuffer = Buffer.from(await fixedBlob.arrayBuffer());
+
+          // if (fileBuffer.length > 0) {
+            if (event.data.size>0){
+            mediadata.push(event.data)
+            // storageStream.write(fileBuffer);
+            console.log('Writing data to file...');
+          };
+    // });
+    };
+
+        mediaRecorderRef.current.onstart = (event) => {
+          console.log('Clipping started');
+          setStartClip(true);
+          setIsClipping(true);
+          async function handleSaveClip() {
+            try {
+              const response = await axios.post(
+                addSurgeryVedio(surgeryId),
+                {
+                  video_file: outputFileName,
+                  surgery: surgeryId,
+                  patient: patientId,
+                },
+                { headers },
+              );
+              // setRecordingId(response.data.video_id);
+              console.log(response);
+            } catch (error) {
+              console.log(error);
+            }
+          }
+          handleSaveClip();
+        };
+
+        mediaRecorderRef.current.onstop = async (event) => {
+
+          const v_duration=Recording_Time.current*1000
+          
+          const blob = new Blob(mediadata, { type: 'video/webm'});
+           console.log("####################",blob.size)
+          fixWebmDuration(blob, v_duration,{logger: false}).then (async function (fixedBlob) {
+          const fileBuffer = Buffer.from(await fixedBlob.arrayBuffer());
+          // const data = event.data;
+          console.log("####################",fixedBlob.size);
+          console.log("")
+          storageStream.write(fileBuffer)
+          console.log("working")
+          
+          });
+          // storageStream.close()
+          Recording_Time.current=0;
+          setIsClipping(false);
+          mediaRecorderRef.current=null
+        
+      };
+
+        mediaRecorderRef.current.start(1000);
+        console.log(mediaRecorderRef.current.state);
+      } 
+      // catch (error) {
+      //   console.log(error);
+      // }
+    }
+  }
+
+  function stopRecording() {
+    // console.log(mediaRecorderRef.current.state)
+    if (
+      mediaRecorderRef.current && (mediaRecorderRef.current.state === 'recording' || mediaRecorderRef.current.state === 'paused')
+    ) {
+      mediaRecorderRef.current.stop();
+      setStartClip(false);
+      mediaRecorderRef.current=null
+    }
+  }
+
+  const clipVedio = () => {
+    if (startClip) {
+      stopRecording();
+    } else {
+      handleClip();
+    }
+  }
+  const [isClipping, setIsClipping] = useState(false);
+
+  const handleCheckClipping = () => {
+    if (mediaRecorderRef.current) {
+      if (mediaRecorderRef.current.state === 'recording' ) {
+        mediaRecorderRef.current.pause();
+        setIsClipping(false);
+      } else if (mediaRecorderRef.current.state === 'paused' && videoRef.current.paused == false) {
+        mediaRecorderRef.current.resume();
+        setIsClipping(true);
+      }
+    }
+    else{console.log("clipping didn't started")}
+  };
+
+  // Vedio Clip Section End
+
+
+
 
   return (
     <Box className="popup-media" width="100vw" height="100vh">
@@ -321,23 +542,26 @@ function Vedios() {
         onMouseUp={handleMouseUp}
         onWheel={handleWheel}
       >
+        <canvas
+          ref={canvasRef}
+          style={{ width: '0%', height: '0%', visibility: 'hidden' }}
+        />
         <video
-          src={address}
+          src={temp.get('video_file')}
           ref={videoRef}
           className={isScreenshotTaken ? 'screenshot-taken' : ''}
+          autoPlay={true}
           style={{
             maxWidth: '100%',
             maxHeight: '100%',
             width: '100vw',
             height: '100%',
             objectFit: 'contain',
-            transform: `translate(${position.x}px, ${position.y}px) scale(${
-              zoomLevel / 100
-            }) rotate(${rotationAngle}deg) scale(${zoomLevel / 100})`,
+            transform: `translate(${position.x}px, ${position.y}px) scale(${zoomLevel / 100
+              }) rotate(${rotationAngle}deg) scale(${zoomLevel / 100})`,
             transition: 'transform 0.5s ease',
           }}
         />
-        <canvas ref={canvasRef} style={{ display: 'none' }} />
       </Box>
       <Box
         className="seekbar-and-timelapse"
@@ -366,10 +590,45 @@ function Vedios() {
         justifyContent="space-between"
         gap="1.5rem"
       >
-        <Box className="clip" display="flex" gap="0.5rem" color="white">
-          <Input type="time" size="sm" step="1" />
-          <Input type="time" size="sm" step="1" />
-          <Button size="sm">
+        <Box className="clip" display="flex" gap="0.5rem" color="white" alignItems="center" ml={4}>
+          {/* <Input
+          type="time"
+          size="sm"
+          step="1"
+          value={clipTimes.startTime}
+          onChange={handleStartTimeChange}
+        />
+        <Input
+          type="time"
+          size="sm"
+          step="1"
+          value={clipTimes.endTime}
+          onChange={handleEndTimeChange}
+        /> */}
+          <Button size="sm" onClick={handleCheckClipping}>
+            {isClipping === true ? (
+              <PauseCircleFilledIcon />
+            ) : (
+              <PlayCircleIcon />
+            )}
+          </Button>
+          <Box className="duration" height="100%">
+              <Text
+                fontSize="1.5rem"
+                color="white"
+                background="black"
+                minWidth="8rem"
+                width="auto"
+                height="3.5vh"
+                textAlign="center"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+              >
+                {formatTime(Recording_Time.current)}
+              </Text>
+            </Box>
+          <Button size="sm" onClick={clipVedio}>
             <ContentCutIcon fontSize="1rem" />
           </Button>
         </Box>
@@ -462,47 +721,6 @@ function Vedios() {
           <Button size="sm" className="snap" onClick={handleTakeScreenshot}>
             <CameraAltIcon fontSize="1rem" />
           </Button>
-          {/* MODAL AFTER TAKING SCREENSHOT START */}
-          {/* <Modal isOpen={commentModalOpen} onClose={handleCloseCommentModal}>
-            <ModalOverlay />
-            <ModalContent
-              maxHeight="45rem"
-              style={{
-                position: 'fixed',
-                right: 0,
-                bottom: '0rem',
-                height: '100%',
-              }}
-            >
-              <ModalHeader>Add Your Comment</ModalHeader>
-              <ModalCloseButton />
-              <ModalBody pb={4}>
-                <FormControl>
-                  <FormLabel>Heading</FormLabel>
-                  <Input
-                    placeholder="Heading"
-                    name="headline"
-                    onChange={handleChange}
-                  />
-                </FormControl>
-                <FormControl>
-                  <FormLabel>Comment</FormLabel>
-                  <Input
-                    placeholder="Comment"
-                    name="comment_text"
-                    onChange={handleChange}
-                  />
-                </FormControl>
-              </ModalBody>
-              <ModalFooter>
-                <Button colorScheme="blue" mr={3} onClick={handleAdd}>
-                  Save
-                </Button>
-                <Button onClick={onClose}>Cancel</Button>
-              </ModalFooter>
-            </ModalContent>
-          </Modal> */}
-          {/* MODAL AFTER TAKING SCREENSHOT END */}
           <Button size="sm" className="rotation" onClick={handleRotateVideo}>
             <ScreenRotationIcon fontSize="1rem" />
           </Button>
@@ -538,8 +756,8 @@ function Vedios() {
                 {comments.map((comment, i) =>
                   comment ? (
                     <Box
-                      border="1px solid black"
-                      background="cyan.50"
+                      border="1px solid grey"
+                      background="facebook.50"
                       borderRadius="0.5rem"
                       padding="1rem"
                       marginBottom="1rem"
@@ -548,19 +766,26 @@ function Vedios() {
                       justifyContent="space-between"
                       alignItems="center"
                       transition="transform 0.5s ease"
+                      position="relative"
+                      _hover={{ transform: 'scale(1.03)' }}
                     >
                       <Box>
                         <Heading as="h5" size="sm">
                           {comment.headline}
                         </Heading>
                         <Text>{comment.comment_text}</Text>
-                        {/* {console.log(comment.comment_id)}; */}
                       </Box>
                       <Box display="flex" position="absolute" right="0" top="0">
-                        <Button background="none" _hover={{background: "none"}}>
+                        <Button
+                          background="none"
+                          _hover={{ background: 'none', color: 'blue' }}
+                          onClick={() => setEditingComment(comment.comment_id)}
+                        >
                           <EditIcon />
                         </Button>
                         <Button
+                          background="none"
+                          _hover={{ background: 'none', color: 'red' }}
                           onClick={() =>
                             handleDeleteComment(comment.comment_id)
                           }
@@ -574,6 +799,37 @@ function Vedios() {
                   ),
                 )}
               </ModalBody>
+              {editingComment && (
+                <ModalBody scrollBehavior="smooth" border="3px solid red" borderRadius="1rem" width="90%" alignSelf="center" mb={4} >
+                  <ModalHeader>Edit Comment </ModalHeader>
+                  <FormControl>
+                    <FormLabel fontWeight="bold">HEADING</FormLabel>
+                    <Input
+                      placeholder="Heading"
+                      name="headline"
+                      value={commentInputs.headline}
+                      onChange={handleCommentChange}
+                    />
+                  </FormControl>
+                  <FormControl mt={2}>
+                    <FormLabel fontWeight="bold">COMMENT</FormLabel>
+                    <Textarea
+                      placeholder="Comment"
+                      name="comment_text"
+                      onChange={handleCommentChange}
+                      value={commentInputs.comment_text}
+                      resize="vertical"
+                    />
+                  </FormControl>
+                  <ModalFooter mt={2}>
+                    <Button colorScheme="blue" mr={3} onClick={() => handleUpdateComment(editingComment)}
+                    >
+                      Update
+                    </Button>
+                    <Button onClick={() => setEditingComment(null)} background="red" color="white" _hover={{ background: "red.600" }}>Cancel</Button>
+                  </ModalFooter>
+                </ModalBody>
+              )}
             </ModalContent>
           </Modal>
         </Box>

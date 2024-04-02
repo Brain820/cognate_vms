@@ -129,7 +129,7 @@ function Login() {
                   </Button>
                 </InputRightElement>
               </InputGroup>
-              <Link to="www.google.com">Forgot Password</Link>
+              <Link to="/forgot">Forgot Password</Link>
             </FormControl>
 
             <Button
@@ -144,8 +144,8 @@ function Login() {
             {err && <p>{err}</p>}
             <Text>
               Already Have An Account?{' '}
-              <Link to="/register" style={{ color: 'rgba(0, 57, 117, 1)' }}>
-                Create One
+              <Link to="/login" style={{ color: 'rgba(0, 57, 117, 1)' }}>
+                Login Here
               </Link>
             </Text>
           </VStack>

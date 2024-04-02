@@ -10,6 +10,7 @@ import {
   Th,
   Thead,
   Tr,
+  useColorModeValue,
 } from '@chakra-ui/react';
 import axios from 'axios';
 import { useEffect, useState } from 'react';
@@ -18,46 +19,46 @@ import OpenInNewIcon from '@mui/icons-material/OpenInNew';
 import AddSurgery from '../../Surgery/Components/AddSurgery';
 import EditPatient from '../Components/EditPatient';
 import { PatientDetails, singlePatient } from '../../Config/api';
-import useAuth from '../../User/Components/useAuth';
+
+const PatientDetailBox = ({ label, value }) => (
+  <Box display="flex" gap="1rem" width="100%">
+    <Text fontWeight="bold" width="40%">{label} :</Text>
+    <Text color="#003975" width="65%">{value}</Text>
+  </Box>
+);
 
 function PatientDetail() {
   const { id } = useParams();
   const [patient, setPatient] = useState([]);
   const [surgery, setSurgery] = useState([]);
-
+  const textColor = useColorModeValue('colors.light.primaryText', 'colors.dark.primaryText');
+  const accessToken = localStorage.getItem('token');
+  const headers = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${accessToken}`,
+  };
+  const getSurgery = async () => {
+    try {
+      const sgry = await axios.get(PatientDetails(id), { headers });
+      setSurgery(sgry.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
   useEffect(() => {
-    const getSurgery = async () => {
-      try {
-        const accessToken = localStorage.getItem('token');
-        const headers = {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        };
-        const sgry = await axios.get(PatientDetails(id), { headers });
-        setSurgery(sgry.data);
-      } catch (error) {
-        console.log(error);
-      }
-    };
     getSurgery();
-  }, [id, surgery]);
-  const { auth } = useAuth();
+  }, []);
+  const getPatient = async () => {
+    try {
+      const { data } = await axios.get(singlePatient(id), { headers });
+      setPatient(data);
+    } catch (err) {
+      console.log(err);
+    }
+  };
   useEffect(() => {
-    const getPatient = async () => {
-      try {
-        const accessToken = localStorage.getItem('token');
-        const headers = {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        };
-        const { data } = await axios.get(singlePatient(id), { headers });
-        setPatient(data);
-      } catch (err) {
-        console.log(err);
-      }
-    };
     getPatient();
-  }, [auth?.access_token, id, patient]);
+  }, []);
 
   const navigate = useNavigate();
   const calculateAge = (dateOfBirth) => {
@@ -80,6 +81,7 @@ function PatientDetail() {
       flexDirection="column"
       gap="2rem"
       className="patient-detail"
+      color={textColor}
     >
       <span className="back">
         <Button
@@ -98,49 +100,30 @@ function PatientDetail() {
       <Box
         display="flex"
         alignItems="center"
-        justifyContent="space-around"
+        margin="0rem auto"
         fontSize="1.2rem"
+        width="50rem"
       >
-        <Box height="100%">
-          <Box display="flex" gap="1rem">
-            <Text fontWeight="bold">First Name :</Text>
-            <Text color="#003975">{patient.first_name}</Text>
-          </Box>
-          <Box display="flex" gap="1rem">
-            <Text fontWeight="bold">Last Name :</Text>
-            <Text color="#003975">{patient.last_name}</Text>
-          </Box>
-          <Box display="flex" gap="1rem">
-            <Text fontWeight="bold">Date Of Birth :</Text>
-            <Text color="#003975">{patient.date_of_birth}</Text>
-          </Box>
-          <Box display="flex" gap="1rem">
-            <Text fontWeight="bold">Age :</Text>
-            <Text color="#003975">
-              {`${calculateAge(patient.date_of_birth)}`}
-            </Text>
-          </Box>
+        <Box height="100%" width="60rem" >
+          <PatientDetailBox label="First Name" value={patient.first_name} />
+          <PatientDetailBox label="Last Name" value={patient.last_name} />
+          <PatientDetailBox label="Date Of Birth" value={patient.date_of_birth} />
+          <PatientDetailBox
+            label="Age"
+            value={`${calculateAge(patient.date_of_birth)}`}
+          />
         </Box>
-        <Box height="100%">
-          <Box display="flex" gap="1rem">
-            <Text fontWeight="bold">Gender : </Text>
-            <Text color="#003975">{patient.gender}</Text>
-          </Box>
-          <Box display="flex" gap="1rem">
-            <Text fontWeight="bold">Mobile :</Text>
-            <Text color="#003975">{patient.mobile_number}</Text>
-          </Box>
-          <Box display="flex" gap="1rem">
-            <Text fontWeight="bold">Address : </Text>
-            <Text color="#003975">{patient.address}</Text>
-          </Box>
-          <Box display="flex" gap="1rem">
-            <Text fontWeight="bold">Patient Id</Text>
-            <Text color="#003975">{patient.hospital_patient_id}</Text>
-          </Box>
+        <Box height="100%" width="70rem" >
+          <PatientDetailBox label="Gender" value={patient.gender} />
+          <PatientDetailBox label="Mobile" value={patient.mobile_number} />
+          <PatientDetailBox label="Address" value={patient.address}/>
+          <PatientDetailBox
+            label="Patient Id"
+            value={patient.hospital_patient_id}
+          />
         </Box>
       </Box>
-      <EditPatient Patient={patient} />
+      <EditPatient Patient={patient} getPatient={getPatient} />
 
       <Box className="surgery-list">
         <Heading color="red" textAlign="center" fontSize="3rem">
@@ -154,7 +137,7 @@ function PatientDetail() {
           width="100%"
           alignSelf="center"
         >
-          <AddSurgery pat={patient.patient_id} />
+          <AddSurgery pat={patient.patient_id} getSurgery={getSurgery} />
         </Box>
         <TableContainer width="100%" alignSelf="center">
           <Table variant="striped">

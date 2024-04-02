@@ -1,11 +1,13 @@
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, Menu, globalShortcut, session} from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
-// import MenuBuilder from './menu';
-import fs from 'fs';
 import { resolveHtmlPath } from './util';
-// import { electron } from 'process';
+const isDev = require('electron-is-dev');
+app.commandLine.appendSwitch('ignore-gpu-blacklist');
+app.commandLine.appendSwitch('disable-gpu');
+app.commandLine.appendSwitch('disable-gpu-compositing');
+app.disableHardwareAcceleration();
 
 class AppUpdater {
   constructor() {
@@ -15,36 +17,15 @@ class AppUpdater {
   }
 }
 
+
 let mainWindow: BrowserWindow | null = null;
-
-// const { app, BrowserWindow, ipcMain } = require('electron');
-// ipcMain.on('ipc-example', async (event, arg) => {
-//   const msgTemplate = (pingPong: string) => `IPC test: ${pingPong}`;
-//   console.log(msgTemplate(arg));
-//   event.reply('ipc-example', msgTemplate('pong'));
-// });
-
-// ipcMain.on('save-video', (event, recordedVideoBuffer) => {
-//   const filePath = 'recorded-video.mp4'; // Specify the file path and MP4 format
-//   fs.writeFile(filePath, recordedVideoBuffer, (err) => {
-//     // console.log('write file working');
-//     if (err) {
-//       console.error('Error saving the video:', err);
-//       event.reply('save-video-error', err);
-//     } else {
-//       console.log('Video saved as', filePath);
-//       event.reply('save-video-success', filePath);
-//     }
-//   });
-// });
 
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
   sourceMapSupport.install();
 }
 
-const isDebug =
-  process.env.NODE_ENV === 'development' || process.env.DEBUG_PROD === 'true';
+const isDebug = false;
 
 if (isDebug) {
   require('electron-debug')();
@@ -77,88 +58,77 @@ const createWindow = async () => {
   };
 
   mainWindow = new BrowserWindow({
-    show: false,
+    // show: false,
     width: 1920,
     height: 1080,
-    // width: 1024,
-    // height: 728,
+    frame: false,
+    fullscreen: true,
     icon: getAssetPath('icon.png'),
     webPreferences: {
+      sandbox: false,
       nodeIntegration: true,
       contextIsolation: false,
       webSecurity: false,
-      // nodeIntegrationInSubFrames: true,
-      // preload: app.isPackaged
-      //   ? path.join(__dirname, 'preload.js')
-      //   : path.join(__dirname, '../../.erb/dll/preload.js'),
-      // preload: path.join(__dirname, 'preload.js'),
+      offscreen: false,
+      // devTools: false,
+      devTools: isDev
     },
   });
 
   mainWindow.loadURL(resolveHtmlPath('index.html'));
+  mainWindow.webContents.once('did-finish-load', () => {
+  mainWindow.show();
+  });
+  // globalShortcut.register('Escape', () => {
+  //   toggleFrameAndFullScreen();
+  // });
 
-  mainWindow.on('ready-to-show', () => {
-    mainWindow.on('keyup', (event) => {
-      if (event.key === 'Escape') {
-        mainWindow.setFullScreen(false);
-      }
-    });
-    if (!mainWindow) {
-      throw new Error('"mainWindow" is not defined');
-    }
-    if (process.env.START_MINIMIZED) {
-      mainWindow.minimize();
-    } else {
-      mainWindow.show();
-    }
-  });
-
-  mainWindow.on('enter-full-screen', () => {
-    mainWindow.setMenu(null); // This will hide the menu bar
-  });
-  globalShortcut.register('F11', () => {
-    if (mainWindow.isFullScreen()) {
-      mainWindow.setFullScreen(false);
-    } else {
-      mainWindow.setFullScreen(true);
-    }
-  });
+  const customMenu = Menu.buildFromTemplate([])
+  Menu.setApplicationMenu(customMenu)
 
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
 
-  // const menuBuilder = new MenuBuilder(mainWindow);
-  // menuBuilder.buildMenu();
-
-  // Open urls in the user's browser
+  
   mainWindow.webContents.setWindowOpenHandler((edata) => {
     shell.openExternal(edata.url);
     return { action: 'deny' };
   });
   new AppUpdater();
+  mainWindow.webContents.openDevTools();
 };
 
-/**
- * Add event listeners...
- */
+function toggleFrameAndFullScreen() {
+  const isFullScreen = mainWindow.isFullScreen();
+
+  // Toggle frame
+  mainWindow.setFullScreen(!isFullScreen);
+
+  // Toggle full-screen mode
+  mainWindow.setFullScreen(!isFullScreen);
+}
 
 app.on('window-all-closed', () => {
-  // Respect the OSX convention of having the application in memory even
-  // after all windows have been closed
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+app.on('will-quit', () => {
+  globalShortcut.unregisterAll();
+
 });
 
 app
   .whenReady()
   .then(() => {
     createWindow();
+    // globalShortcut.register('F11', () => {
+    //   mainWindow.setFullScreen(!mainWindow.isFullScreen());
+    // });
     app.on('activate', () => {
-      // On macOS it's common to re-create a window in the app when the
-      // dock icon is clicked and there are no other windows open.
       if (mainWindow === null) createWindow();
     });
   })
   .catch(console.log);
+

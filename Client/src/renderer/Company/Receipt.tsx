@@ -1,13 +1,19 @@
+/* eslint-disable jsx-a11y/media-has-caption */
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import CallIcon from '@mui/icons-material/Call';
 import EmailIcon from '@mui/icons-material/Email';
-import { Box, Button, Heading, Image, Text } from '@chakra-ui/react';
+import { Box, Button, Center, Flex, Heading, Image, Text } from '@chakra-ui/react';
 import { useNavigate, useParams } from 'react-router-dom';
+import html2pdf from 'html2pdf.js';
 import { useCompany } from './CompanyContext';
+import VideoThumbnail from 'react-video-thumbnail'
 import {
+  getCommentOnSurgeryImage,
+  getCommentOnSurgeryVedio,
   getImageListBySurgery,
+  getVedioListBySurgery,
   singlePatient,
   surgeryDetails,
 } from '../Config/api';
@@ -33,13 +39,12 @@ function Receipt() {
           headers,
         });
         setSurgery(data);
-        // setsurgeryId(data.surgery_id);
       } catch (err) {
         console.log(err);
       }
     };
     getSurgery();
-  }, [surgeryId]);
+  }, []);
   const [snaps, setSnaps] = useState([]);
   useEffect(() => {
     const getSnaps = async () => {
@@ -60,7 +65,7 @@ function Receipt() {
       }
     };
     getSnaps();
-  }, [headers, surgeryId, snaps]);
+  }, []);
   const [patient, setPatient] = useState([]);
   useEffect(() => {
     const getPatient = async () => {
@@ -72,7 +77,7 @@ function Receipt() {
       }
     };
     getPatient();
-  }, [patient, patientId]);
+  }, []);
   const { company } = useCompany();
   const calculateAge = (dateOfBirth) => {
     const birthDate = new Date(dateOfBirth);
@@ -87,37 +92,50 @@ function Receipt() {
     }
     return age;
   };
-  const handleSaveAsPdf = () => {
-    const content = document.getElementById('pdf-content');
-    const pdfOptions = {
-      margin: 10,
-      filename: 'receipt.pdf',
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-    };
 
-    html2pdf().from(content).set(pdfOptions).outputPdf();
-  };
+
+
   const currentDate = new Date();
   const year = currentDate.getFullYear();
   const month = String(currentDate.getMonth() + 1).padStart(2, '0');
   const day = String(currentDate.getDate()).padStart(2, '0');
   const formattedDate = `${year}-${month}-${day}`;
-  const [comments, setComments] = useState([]);
+  const [vedios, setVedios] = useState([]);
   useEffect(() => {
-    const getComments = async (imageId) => {
+    const getVedios = async () => {
       try {
-        const response = await axios.get(
-          `http://127.0.0.1:8000/api/patients/get-comment-on-surgery-image/${imageId}/`,
+        if (surgeryId) {
+          const response = await axios.get(getVedioListBySurgery(surgeryId), {
+            headers,
+          });
+          if (response.data) {
+            setVedios(response.data);
+          } else {
+            console.log('API response does not contain data.');
+          }
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    };
+    getVedios();
+  }, []);
+  const [comments, setComments] = useState({});
+  const [vedioComments, setVedioComments] = useState({});
+
+  useEffect(() => {
+    const getSnapsComments = async (mediaId) => {
+      try {
+        const snapsComments = await axios.get(
+          getCommentOnSurgeryImage(mediaId),
           {
             headers,
           },
         );
-        if (response.data) {
+        if (snapsComments.data) {
           setComments((prevComments) => ({
             ...prevComments,
-            [imageId]: response.data,
+            [mediaId]: snapsComments.data,
           }));
         } else {
           console.log('API response does not contain data.');
@@ -126,409 +144,402 @@ function Receipt() {
         console.log(err);
       }
     };
-    snaps.forEach((snap) => {
-      if (!comments[snap.image_id]) {
-        getComments(snap.image_id);
+    const getVedioComments = async (mediaId) => {
+      try {
+        const vediosComments = await axios.get(
+          getCommentOnSurgeryVedio(mediaId),
+          {
+            headers,
+          },
+        );
+        if (vediosComments.data) {
+          setVedioComments((prevComments) => ({
+            ...prevComments,
+            [mediaId]: vediosComments.data,
+          }));
+        } else {
+          console.log('API response does not contain data.');
+        }
+      } catch (err) {
+        console.log(err);
       }
+    };
+    vedios.forEach((vedio) => {
+      getVedioComments(vedio.video_id);
     });
-  }, [snaps, comments]);
+    snaps.forEach((snap) => {
+      getSnapsComments(snap.image_id);
+    });
+  }, [vedios, snaps]);
+  const canvasRef = useRef(null);
+  const handleSaveAsPdf = () => {
+    const content = document.getElementById('pdf-content');
+    const pdfOptions = {
+      margin: 10,
+      filename: 'receipt.pdf',
+      image: { type: 'jpeg', quality: 1 },
+      html2canvas: {
+        scale: 1,
+        dpi: 192,
+        letterRendering: true,
+        useCORS: true,
+        width: content.offsetWidth,
+      },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      html2pdf: {
+        pagebreak: { mode: 'css' },
+        jsPDF: { format: 'a4' },
+      },
+    };
+
+    html2pdf().from(content).set(pdfOptions).save();
+  };
+
+  const companyData = localStorage.getItem('company');
+  let logo = JSON.parse(companyData);
+  logo = logo.logo;
+
   return (
     <Box>
       <Box
-        maxWidth="1190px"
-        width="1190px"
+        maxWidth="1180px"
+        width="1180px"
         margin="0 auto"
         border="1px solid grey"
+        id="pdf-content"
       >
-        <Box id="pdf-content">
+        <Box
+          width="100%"
+          display="flex"
+          alignItems="center"
+          justifyContent="space-between"
+          borderBottom="2px solid red"
+          padding="2rem 1rem"
+        >
           <Box
-            maxWidth="100vw"
+            width="15%"
+            height="100%"
             display="flex"
+            justifyContent="center"
             alignItems="center"
-            justifyContent="space-between"
-            borderBottom="2px solid red"
-            paddingBottom="0.5rem"
-            paddingTop="4rem"
           >
-            <Box
-              width="15%"
-              height="100%"
-              display="flex"
-              justifyContent="center"
-              alignItems="center"
-            >
-              <img
-                src={company.logo ? company.logo : 'Logo'}
-                alt={company.company_name}
-              />
-            </Box>
+            <Image
+              src={logo ? 'file://' + `${logo}` : 'Logo'}
+              // src={company.logo ? 'file://' + `${company.logo}` : 'Logo'}
+              alt={company.company_name}
+            />
+          </Box>
 
-            <Box
-              display="flex"
-              alignItems="flex-start"
-              justifyContent="space-between"
-              flexDirection="column"
-              width="60%"
-              height="100%"
-              paddingLeft="1rem"
-            >
-              <Box display="flex" gap="1rem">
-                <Text
-                  fontSize="2rem"
-                  fontWeight="bold"
-                  color="black"
-                  textTransform="uppercase"
-                >
-                  {company.company_name ? company.company_name : 'Company Name'}
-                </Text>
-                {/* <Heading color="red">PATHOLOGY LAB</Heading> */}
-              </Box>
-              <Box>
-                <Text>Accurate | Caring | Instant</Text>
-              </Box>
-              <Box>
-                <Text>
-                  {company.company_address
-                    ? company.company_address
-                    : 'Company Address Here'}
-                </Text>
-              </Box>
+          <Box
+            display="flex"
+            alignItems="flex-start"
+            justifyContent="space-between"
+            flexDirection="column"
+            width="60%"
+            height="100%"
+            paddingLeft="1rem"
+          >
+            <Box display="flex" gap="1rem" width="100%">
+              <Text
+                fontSize="2rem"
+                fontWeight="bold"
+                color="black"
+                textTransform="uppercase"
+              >
+                {company.company_name ? company.company_name : 'Company Name'}
+              </Text>
             </Box>
-
-            <Box
-              display="flex"
-              flexDirection="column"
-              justifyContent="center"
-              paddingLeft="2rem"
-              alignItems="flex-start"
-              width="25%"
-            >
-              <Box display="flex" gap="1rem">
-                <CallIcon style={{ color: 'red' }} />
-                <Text fontWeight="semibold">
-                  {company.company_mobile_no
-                    ? company.company_mobile_no
-                    : 'Mobile Number'}
-                </Text>
-              </Box>
-              <Box display="flex" gap="1rem">
-                <EmailIcon style={{ color: 'red' }} />
-                <Text fontWeight="semibold">
-                  {company.company_email
-                    ? company.company_email
-                    : 'Company Email'}
-                </Text>
-              </Box>
+            <Box width="100%">
+              <Text>
+                {company.company_address
+                  ? company.company_address + ", " + company.district + ", " + company.state + ", " + company.pin
+                  : 'Company Address Here'}
+              </Text>
             </Box>
           </Box>
-          <Box padding="4rem 8rem" position="relative">
-            <Box
-              position="absolute"
-              top="3.5%"
-              left="44%"
-              transform="translate(-10%, -10%) rotate(-45deg)"
-              zIndex="1"
-              width="auto"
-              height="20rem"
-              opacity={0.2}
+
+          <Box
+            display="flex"
+            flexDirection="column"
+            justifyContent="center"
+            alignItems="flex-start"
+            width="25%"
+          >
+            <Box display="flex" gap="1rem">
+              <CallIcon style={{ color: 'red' }} />
+              <Text fontWeight="semibold">
+                {company.company_mobile_no
+                  ? company.company_mobile_no
+                  : 'Mobile Number'}
+              </Text>
+            </Box>
+            <Box display="flex" gap="1rem">
+              <EmailIcon style={{ color: 'red' }} />
+              <Text fontWeight="semibold">
+                {company.company_email
+                  ? company.company_email
+                  : 'Company Email'}
+              </Text>
+            </Box>
+          </Box>
+        </Box>
+        <Box padding="4rem 8rem" position="relative">
+          <Box
+            position="absolute"
+            top="50%"
+            left="35%"
+            transform="translate(-10%, -10%) rotate(-45deg)"
+            zIndex="1"
+            width="auto"
+            height="20rem"
+            opacity={0.2}
+          >
+            {/* Watermark Image */}
+            <Image
+              src={'file://' + `${company.watermarked_logo}`}
+              alt="Watermark"
+              width="100%"
+              height="50%"
+            />
+          </Box>
+          <Box>
+            <Heading
+              textDecoration="underline"
+              textTransform="uppercase"
+              fontSize="2rem"
+              textAlign="center"
+              marginBottom="1rem"
             >
-              {/* Watermark Image */}
-              <Image
-                src={company.watermarked_logo}
-                alt="Watermark"
-                width="50%"
-                height="50%"
-              />
-            </Box>
-            <Box>
-              <Heading
-                textDecoration="underline"
-                textTransform="uppercase"
-                fontSize="2rem"
-                textAlign="center"
-                marginBottom="1rem"
-              >
-                Patient Details
-              </Heading>
-              <Box
-                display="flex"
+              Patient Details
+            </Heading>
+            <Center background="lavenderblush">
+              <Flex
+                direction={{ base: 'column', md: 'row' }}
                 alignItems="center"
                 justifyContent="center"
-                padding="1rem"
-                height="10rem"
-                gap="1rem"
-                background="lavenderblush"
-                marginBottom="1rem"
+                wrap="wrap"
               >
-                <Box
-                  width="auto"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                  alignSelf="center"
-                  flexDirection="column"
-                  height="100%"
-                  gap="0.5rem"
-                >
-                  <Text fontWeight="medium" alignSelf="flex-start">
-                    First Name :
-                  </Text>
-                  <Text fontWeight="medium" alignSelf="flex-start">
-                    Last Name :
-                  </Text>
-                  <Text fontWeight="medium" alignSelf="flex-start">
-                    Date of Birth :
-                  </Text>
-                  <Text fontWeight="medium" alignSelf="flex-start">
-                    Gender :
-                  </Text>
-                </Box>
-
-                <Box
-                  width="25%"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                  alignSelf="center"
-                  flexDirection="column"
-                  height="100%"
-                  gap="0.5rem"
-                >
-                  <Text alignSelf="flex-start">{patient.first_name}</Text>
-                  <Text alignSelf="flex-start">{patient.last_name}</Text>
-                  <Text alignSelf="flex-start">{patient.date_of_birth}</Text>
-                  <Text alignSelf="flex-start">{patient.gender}</Text>
-                </Box>
-
-                <Box
-                  width="auto"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                  alignSelf="center"
-                  flexDirection="column"
-                  height="100%"
-                  gap="0.5rem"
-                >
-                  <Text fontWeight="semibold" alignSelf="flex-start">
-                    Admitted Date :
-                  </Text>
-                  <Text fontWeight="semibold" alignSelf="flex-start">
-                    Age :
-                  </Text>
-                  <Text fontWeight="semibold" alignSelf="flex-start">
-                    Mobile Number :
-                  </Text>
-                  <Text fontWeight="semibold" alignSelf="flex-start">
-                    Address :
-                  </Text>
-                </Box>
-
-                <Box
-                  width="25%"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                  alignSelf="center"
-                  flexDirection="column"
-                  height="100%"
-                  gap="0.5rem"
-                >
-                  <Text alignSelf="flex-start">2022-09-09</Text>
-                  <Text alignSelf="flex-start">{`${calculateAge(
-                    patient.date_of_birth,
-                  )}`}</Text>
-                  <Text alignSelf="flex-start">{patient.mobile_number}</Text>
-                  <Text alignSelf="flex-start">{patient.address}</Text>
-                </Box>
-              </Box>
-            </Box>
-            <Box>
-              <Heading
-                textDecoration="underline"
-                textTransform="uppercase"
-                fontSize="2rem"
-                textAlign="center"
-                marginBottom="1rem"
-                marginTop="6rem"
-              >
-                Surgery Details
-              </Heading>
-              <Box
-                display="flex"
-                alignItems="center"
-                justifyContent="center"
-                padding="1rem"
-                height="10rem"
-                gap="1rem"
-                background="lavenderblush"
-                marginBottom="1rem"
-              >
-                <Box
-                  width="auto"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                  alignSelf="center"
-                  flexDirection="column"
-                  height="100%"
-                  gap="0.5rem"
-                >
-                  <Text fontWeight="medium" alignSelf="flex-start">
-                    Surgeon Name :
-                  </Text>
-                  <Text fontWeight="medium" alignSelf="flex-start">
-                    Surgery Type :
-                  </Text>
-                  <Text fontWeight="medium" alignSelf="flex-start">
-                    Body Part :
-                  </Text>
-                </Box>
-
-                <Box
-                  width="25%"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                  alignSelf="center"
-                  flexDirection="column"
-                  height="100%"
-                  gap="0.5rem"
-                >
-                  <Text alignSelf="flex-start">{surgery.surgeon_name}</Text>
-                  <Text alignSelf="flex-start">{surgery.surgery_type}</Text>
-                  <Text alignSelf="flex-start">{surgery.body_part}</Text>
-                </Box>
-
-                <Box
-                  width="auto"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                  alignSelf="center"
-                  flexDirection="column"
-                  height="100%"
-                  gap="0.5rem"
-                >
-                  <Text fontWeight="medium" alignSelf="flex-start">
-                    Additional Surgeon :
-                  </Text>
-                  <Text fontWeight="medium" alignSelf="flex-start">
-                    Anesthesiologist :
-                  </Text>
-                  <Text fontWeight="medium" alignSelf="flex-start">
-                    Surgery History Details :
-                  </Text>
-                </Box>
-
-                <Box
-                  width="25%"
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="center"
-                  alignSelf="center"
-                  flexDirection="column"
-                  height="100%"
-                  gap="0.5rem"
-                >
-                  <Text alignSelf="flex-start">
-                    {surgery.additional_surgeon}
-                  </Text>
-                  <Text alignSelf="flex-start">{surgery.anesthesiologist}</Text>
-                  <Text alignSelf="flex-start">
-                    {surgery.surgery_history_details}
-                  </Text>
-                </Box>
-              </Box>
-            </Box>
-            <Box>
-              <Heading
-                textDecoration="underline"
-                textTransform="uppercase"
-                fontSize="2rem"
-                textAlign="center"
-                marginBottom="1rem"
-                marginTop="6rem"
-              >
-                Surgery Details
-              </Heading>
-              <Box
-                display="flex"
-                flexDirection="column"
-                alignItems="center"
-                justifyContent="center"
-                gap="16px"
-              >
-                {snaps.map((item, i) => (
+                {[
+                  { label: 'First Name', value: patient.first_name },
+                  { label: 'Last Name', value: patient.last_name },
+                  { label: 'Date of Birth', value: patient.date_of_birth },
+                  { label: 'Gender', value: patient.gender },
+                  { label: 'Age', value: `${calculateAge(patient.date_of_birth)}` },
+                  { label: 'Mobile Number', value: patient.mobile_number },
+                  { label: 'Address', value: patient.address },
+                  { label: 'Patient Id', value: patient.hospital_patient_id },
+                ].map((item, index) => (
                   <Box
-                    key={i}
-                    position="relative"
-                    overflow="hidden"
-                    borderRadius="8px"
-                    // height="15rem"
-                    height="auto"
+                    key={index}
+                    width={{ base: '100%', md: '50%' }}
                     display="flex"
-                    // alignItems="center"
-                    justifyContent="space-between"
-                    // gap="2rem"
-                    width="100%"
-                    background="transparent"
-                    border="1px solid black"
+                    gap="1rem"
+                    padding="0.5rem"
                   >
-                    <Box minWidth="50%" maxWidth="50%" height="100%">
-                      <Image
-                        src={item.image_file}
-                        alt=""
-                        width="100%"
-                        height="100%"
-                        minHeight="10rem"
-                        objectFit="fill"
-                        borderTopRightRadius="0"
-                        borderBottomRightRadius="0"
-                        boxShadow="0 4px 8px rgba(0, 0, 0, 0.1)"
-                      />
-                    </Box>
-                    <Box
-                      minWidth="50%"
-                      maxWidth="50%"
-                      height="auto"
-                      background="lavenderblush"
-                      padding="0.5rem"
-                    >
-                      {comments[item.image_id] &&
-                      comments[item.image_id].length ? (
-                        comments[item.image_id].map((comment, index) => (
-                          <Box key={index}>
-                            <Box fontWeight="bold">{comment.headline}</Box>
-                            <Box>{comment.comment_text}</Box>
-                          </Box>
-                        ))
-                      ) : (
-                        <Box color="red" fontSize="2rem" />
-                      )}
-                    </Box>
+                    <Text fontWeight="semibold">{item.label}:</Text>
+                    <Text>{item.value}</Text>
                   </Box>
                 ))}
-              </Box>
+              </Flex>
+            </Center>
+
+          </Box>
+          <Box>
+            <Heading
+              textDecoration="underline"
+              textTransform="uppercase"
+              fontSize="2rem"
+              textAlign="center"
+              marginBottom="1rem"
+              marginTop="6rem"
+            >
+              Surgery Details
+            </Heading>
+            <Center background="lavenderblush">
+              <Flex
+                direction={{ base: 'column', md: 'row' }}
+                alignItems="center"
+                justifyContent="center"
+                wrap="wrap"
+              >
+                {[
+                  { label: 'Surgery Date', value: surgery.surgery_date },
+                  { label: 'Surgeon Name', value: surgery.surgeon_name },
+                  { label: 'Surgery Type', value: surgery.surgery_type },
+                  { label: 'Body Part', value: surgery.body_part },
+                  { label: 'Additional Surgeon', value: surgery.additional_surgeon },
+                  { label: 'Anesthesiologist', value: surgery.anesthesiologist },
+                  { label: 'Surgery History Details', value: surgery.surgery_history_details },
+                  { label: 'Operation Theatre Number', value: surgery.operation_theatre_number },
+                ].map((item, index) => (
+                  <Box
+                    key={index}
+                    width={{ base: '100%', md: '50%' }}
+                    display="flex"
+                    gap="1rem"
+                    padding="0.5rem"
+                  >
+                    <Text fontWeight="semibold">{item.label}:</Text>
+                    <Text>{item.value}</Text>
+                  </Box>
+                ))}
+              </Flex>
+            </Center>
+          </Box>
+          <Box>
+            <Heading
+              textDecoration="underline"
+              textTransform="uppercase"
+              fontSize="2rem"
+              textAlign="center"
+              marginBottom="1rem"
+              marginTop="6rem"
+            >
+              Surgery Details
+            </Heading>
+            <Box
+              display="flex"
+              flexDirection="column"
+              alignItems="center"
+              justifyContent="center"
+              gap="16px"
+            >
+              {snaps.map((item, i) => (
+                <Box
+                  key={i}
+                  position="relative"
+                  overflow="hidden"
+                  borderRadius="8px"
+                  height="auto"
+                  display="flex"
+                  justifyContent="space-between"
+                  width="100%"
+                  background="transparent"
+                  border="1px solid black"
+                  className="large-component"
+                  style={{
+                    pageBreakInside: 'avoid',
+                    pageBreakAfter: 'auto',
+                    pageBreakBefore: 'auto',
+                  }}
+                >
+                  <Box minWidth="50%" maxWidth="50%" height="100%">
+                    <Image
+                      src={'file://' + `${item.image_file}`}
+                      alt=""
+                      width="100%"
+                      height="100%"
+                      minHeight="10rem"
+                      objectFit="fill"
+                      borderTopRightRadius="0"
+                      borderBottomRightRadius="0"
+                      boxShadow="0 4px 8px rgba(0, 0, 0, 0.1)"
+                    />
+                  </Box>
+                  <Box
+                    minWidth="50%"
+                    maxWidth="50%"
+                    height="auto"
+                    background="lavenderblush"
+                    padding="0.5rem"
+                  >
+                    {comments[item.image_id] &&
+                      comments[item.image_id].length ? (
+                      comments[item.image_id].map((comment, index) => (
+                        <Box key={index}>
+                          <Box fontWeight="bold">{comment.headline}</Box>
+                          <Box>{comment.comment_text}</Box>
+                        </Box>
+                      ))
+                    ) : (
+                      <Box color="red" fontSize="2rem" />
+                    )}
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+            <Box
+              display="flex"
+              flexDirection="column"
+              alignItems="center"
+              justifyContent="center"
+              gap="16px"
+              marginTop="1rem"
+            >
+              {vedios.map((vedio, i) => (
+                <Box
+                  key={i}
+                  position="relative"
+                  overflow="hidden"
+                  borderRadius="8px"
+                  height="auto"
+                  display="flex"
+                  justifyContent="space-between"
+                  width="100%"
+                  background="transparent"
+                  border="1px solid black"
+                  className="large-component"
+                >
+                  <Box minWidth="50%" maxWidth="50%" height="100%">
+                    {/* <video
+                      src={'file://' + `${vedio.video_file}`}
+                      alt="Vedio not available"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        minHeight: '10rem',
+                        objectFit: 'fill',
+                        borderTopRightRadius: '0',
+                        borderBottomRightRadius: '0',
+                        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.1)',
+                      }}
+                    /> */}
+                    <VideoThumbnail
+                      videoUrl={'file://' + `${vedio.video_file}`}
+                      width={2000}
+                      height={1500}
+                    />
+                  </Box>
+                  <Box
+                    minWidth="50%"
+                    maxWidth="50%"
+                    height="auto"
+                    background="lavenderblush"
+                    padding="0.5rem"
+                  >
+                    {vedioComments[vedio.video_id] &&
+                      vedioComments[vedio.video_id].length ? (
+                      vedioComments[vedio.video_id].map((comment, index) => (
+                        <Box key={index}>
+                          <Box fontWeight="bold">{comment.headline}</Box>
+                          <Box>{comment.comment_text}</Box>
+                        </Box>
+                      ))
+                    ) : (
+                      <Box color="red" fontSize="2rem" />
+                    )}
+                  </Box>
+                </Box>
+              ))}
             </Box>
           </Box>
+        </Box>
+        <Box
+          display="flex"
+          alignItems="center"
+          justifyContent="space-between"
+          borderTop="2px solid red"
+          height="4rem"
+        >
           <Box
             display="flex"
             alignItems="center"
             justifyContent="space-between"
-            borderTop="2px solid red"
-            height="4rem"
+            gap="0.5rem"
+            padding="1rem"
           >
-            <Box
-              display="flex"
-              alignItems="center"
-              justifyContent="space-between"
-              gap="0.5rem"
-              padding="1rem"
-            >
-              <Text>Generated On : </Text>
-              <Text>{formattedDate}</Text>
-            </Box>
+            <Text>Generated On : </Text>
+            <Text>{formattedDate}</Text>
           </Box>
         </Box>
       </Box>

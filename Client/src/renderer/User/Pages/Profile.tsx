@@ -8,11 +8,9 @@ import {
   Button,
   useToast,
 } from '@chakra-ui/react';
-import EditIcon from '@mui/icons-material/Edit';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
-import useAuth from '../Components/useAuth';
-import { updateUserData } from '../../Config/api';
+import { getUser, updateUserData } from '../../Config/api';
 
 function Profile() {
   const toast = useToast();
@@ -21,27 +19,31 @@ function Profile() {
   const [userEmail, setUserEmail] = useState('');
   const [userId, setUserId] = useState('');
   const [mobile, setMobile] = useState('');
-  const { auth,setAuth } = useAuth();
+  // const { auth, setAuth } = useAuth();
+
+  const accessToken = localStorage.getItem('token');
+  const headers = {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${accessToken}`,
+  };
+  useEffect(() => {
+    setUserName(profile.name || '');
+    setUserEmail(profile.email || '');
+    setUserId(profile.id || '');
+    setMobile(profile.phone_number || '');
+  },[profile.name, profile.email, profile.id, profile.phone_number]);
 
   useEffect(() => {
     const getProfile = async () => {
       try {
-        const accessToken = localStorage.getItem('token');
-        const headers = {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        };
-        const { data } = await axios.get(
-          'http://localhost:8000/api/user/profile/',
-          { headers },
-        );
+        const { data } = await axios.get(getUser(), { headers });
         setProfile(data);
       } catch (err) {
         console.log(err);
       }
     };
     getProfile();
-  }, [auth?.access_token]);
+  }, []);
 
   const handleEdit = async (e) => {
     e.preventDefault();
@@ -60,7 +62,6 @@ function Profile() {
       await axios.put(updateUserData(profile.id), updatedUser, {
         headers,
       });
-      // Update the profile by merging the existing profile with the updatedUser
       setProfile((prevProfile) => ({
         ...prevProfile,
         ...updatedUser,
@@ -71,13 +72,19 @@ function Profile() {
         status: 'success',
         duration: 3000,
         isClosable: true,
+        position: 'top',
       });
     } catch (err) {
+      toast({
+        title: 'An error Occured',
+        status: 'error',
+        duration: 2000,
+        isClosable: true,
+        position: 'top',
+      });
       console.error(err);
     }
   };
-
-  console.log(profile);
 
   return (
     <Box className="profile">
@@ -99,39 +106,31 @@ function Profile() {
             position="relative"
             size="2xl"
           />
-          <Button
-            position="absolute"
-            top="30rem"
-            background="transparent"
-            _hover={{ background: 'transparent' }}
-          >
-            <EditIcon />
-          </Button>
         </WrapItem>
         <Box className="profile-data">
           <Box className="profile-data-container">
             <Text alignSelf="flex-start">Name</Text>
             <Input
-              placeholder={profile.name}
               name="name"
+              value={userName}
               onChange={(e) => setUserName(e.target.value)}
             />
             <Text alignSelf="flex-start">Email</Text>
             <Input
-              placeholder={profile.email}
               name="email"
+              value={userEmail}
               onChange={(e) => setUserEmail(e.target.value)}
             />
             <Text alignSelf="flex-start">User Id</Text>
             <Input
-              placeholder={profile.id}
               name="user_id"
+              value={userId}
               onChange={(e) => setUserId(e.target.value)}
             />
             <Text alignSelf="flex-start">Phone Number</Text>
             <Input
-              placeholder={profile.phone_number}
               name="phone_number"
+              value={mobile}
               onChange={(e) => setMobile(e.target.value)}
             />
           </Box>

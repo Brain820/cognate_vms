@@ -1,0 +1,1 @@
+db_dir="/home/rakesh/Documents"

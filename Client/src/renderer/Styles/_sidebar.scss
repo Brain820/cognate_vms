@@ -1,13 +1,8 @@
 .sidebar{
   @include flexcolumn;
   justify-content: space-between;
-  // @include shadow;
   @include customShadow;
   padding-top: 1rem;
-  // height: 90vh;
-  // height: 100%;
-  // top: 6.5rem;
-  // position: sticky;
   position: fixed;
   width: 4rem;
   gap: 1rem;
@@ -18,12 +13,13 @@
 
   &-top{
     @include flexcolumn;
+    margin-top: 3rem;
     width: 4rem;
     gap: 1rem;
   }
 
   .active{
-    background: rgb(220, 219, 219);
+    background: rgb(183, 181, 181);
     border-right: 0.3rem solid red;
   }
 
@@ -49,7 +45,8 @@
   }
 
   &-link:hover{
-    background: rgb(255, 94, 94);
+    background: red;
+    // background: rgb(255, 94, 94);
     color: white;
     .tooltiptext{
       transition: all 0.5s;

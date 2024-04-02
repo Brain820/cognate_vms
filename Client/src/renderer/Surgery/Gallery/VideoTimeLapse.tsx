@@ -1,6 +1,3 @@
-// components/VideoTimeLapse.js
-import React from 'react';
-
 function VideoTimeLapse({ currentTime, duration }) {
   const formatTime = (timeInSeconds) => {
     const minutes = Math.floor(timeInSeconds / 60);

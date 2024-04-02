@@ -14,13 +14,19 @@
 }
 
 .patient-detail{
+  // @include flexcolumn;
+  // padding: 2rem;
+  // padding-top: 14vh;
+  // width: 100%;
+  // gap: 1.5rem;
+  // position: relative;
+  // padding-left: 6rem
   @include flexcolumn;
   padding: 2rem;
-  padding-top: 14vh;
   width: 100%;
   gap: 1.5rem;
-  position: relative;
-  padding-left: 6rem
+  padding-left: 6rem;
+  padding-top: 14vh;
 }
 
 .surgery-list{
@@ -30,3 +36,36 @@
   gap: 1.5rem;
 }
 
+// $common-padding: 2rem;
+// $vertical-padding: 14vh;
+// $horizontal-padding: 6rem;
+// $gap: 1.5rem;
+
+// .patients,
+// .patient-detail,
+// .surgery-list {
+//   @include flexcolumn;
+//   padding: $common-padding;
+//   width: 100%;
+//   gap: $gap;
+// }
+
+// .patients,
+// .patient-detail {
+//   padding-top: $vertical-padding;
+
+//   // .header-btns {
+//   //   @include flexCenter;
+//   //   gap: 2rem;
+//   //   padding-left: $horizontal-padding;
+//   //   padding-right: $horizontal-padding;
+//   // }
+
+//   &.patient-detail {
+//     position: relative;
+//   }
+// }
+
+// .surgery-list {
+//   padding-left: $horizontal-padding;
+// }

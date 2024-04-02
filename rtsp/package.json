@@ -1,0 +1,22 @@
+{
+    "name": "rtsp-server",
+    "version": "1.0.0",
+    "description": "Rtsp Relay",
+    "main": "server.js",
+    "scripts": {
+      "test": "echo \"Error: no test specified\" && exit 1",
+      "start": "node server.js",
+      "package-linux-x64": "nexe server.js --target linux-x64 -o build/rtsp-server --build true",
+      "package-linux-arm": "pkg server.js -t node18-linux-arm --output build/rtsp-server"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+
+    "dependencies": {
+      "cors": "^2.8.5",
+      "express": "^4.18.3"
+    }
+    
+  }
+  

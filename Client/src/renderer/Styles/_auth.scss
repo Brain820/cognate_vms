@@ -10,6 +10,10 @@
   }
 }
 
+.large-component{
+  page-break-inside: avoid;
+}
+
 .logo{
   margin: auto;
 }

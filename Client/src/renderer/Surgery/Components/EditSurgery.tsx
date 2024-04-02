@@ -1,4 +1,3 @@
-// import { EditIcon } from '@chakra-ui/icons'
 import { useEffect, useState } from 'react';
 import {
   Button,
@@ -12,56 +11,91 @@ import {
   ModalOverlay,
   Textarea,
   useDisclosure,
+  useToast,
 } from '@chakra-ui/react';
 import axios from 'axios';
 import { editSurgery } from '../../Config/api';
-import useAuth from '../../User/Components/useAuth';
 
 function EditSurgery(props) {
   const { onOpen, onClose, isOpen } = useDisclosure();
 
-  const { Surgery } = props;
+  const { Surgery, getSurgery } = props;
+  const id = Surgery.surgery_id;
+
   const [surgeonName, setSurgeonName] = useState('');
   const [surgeryType, setSurgeryType] = useState('');
   const [bodyPart, setBodyPart] = useState('');
-  // const [additional, setAdditional] = useState('');
-  // const [anesth, setAnesth] = useState('');
-  // const [history, setHistory] = useState('');
-  // const [patientId, setPatientId] = useState('');
-  const id = Surgery.surgery_id;
+  const [additionalSurgeon, setAdditionalSurgeon] = useState('');
+  const [anesthesiologist, setAnesthesiologist] = useState('');
+  const [surgeryHistoryDetails, setSurgeryHistoryDetails] = useState('');
+  const [surgeryDate, setSurgeryDate] = useState('');
+  const [surgeryOperationTheatre, setSurgeryOperationTheatre] = useState('');
 
-  const [updateData, setUpdateData] = useState({
-    surgeon_name: surgeonName || Surgery.surgery_name,
-    surgery_type: surgeryType || Surgery.surgery_type,
-    body_part: bodyPart || Surgery.body_part,
-    additional_surgeon: 'NA',
-    anesthesiologist: 'NA',
-    surgery_history_details: 'NA',
-  });
 
-  const handleChange = (e) => {
-    setUpdateData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
+  useEffect(() => {
+    setSurgeonName(Surgery.surgeon_name || '');
+    setSurgeryType(Surgery.surgery_type || '');
+    setBodyPart(Surgery.body_part || '');
+    setAdditionalSurgeon(Surgery.additional_surgeon || 'NA');
+    setAnesthesiologist(Surgery.anesthesiologist || 'NA');
+    setSurgeryHistoryDetails(Surgery.surgery_history_details || 'NA');
+    setSurgeryDate(Surgery.surgery_date);
+    setSurgeryOperationTheatre(Surgery.operation_theatre_number)
+  }, [
+    Surgery.additional_surgeon,
+    Surgery.anesthesiologist,
+    Surgery.body_part,
+    Surgery.surgery_history_details,
+    Surgery.surgery_type,
+    Surgery.surgeon_name,
+    Surgery.surgery_date,
+    Surgery.operation_theatre_number,
+  ]);
 
-  const { auth } = useAuth();
+  const toast = useToast()
   const handleEdit = async (e) => {
     e.preventDefault();
     try {
-      const accessToken = auth?.access_token;
+      const accessToken = localStorage.getItem('token');
       const headers = {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${accessToken}`,
       };
+      const updatedSurgery = {
+        surgeon_name: surgeonName,
+        surgery_type: surgeryType,
+        body_part: bodyPart,
+        additional_surgeon: additionalSurgeon,
+        anesthesiologist: anesthesiologist,
+        surgery_history_details: surgeryHistoryDetails,
+        surgery_date: surgeryDate,
+        operation_theatre_number: surgeryOperationTheatre,
+      };
       await axios.put(
         editSurgery(id),
         {
-          ...updateData,
+          ...updatedSurgery,
           patient: Surgery.patient,
         },
         { headers },
       );
+      toast({
+        title: 'Surgery Has Been Updated Successfully!',
+        status: 'success',
+        isClosable: true,
+        position: 'top',
+        duration: 3000,
+      });
+      getSurgery();
       onClose();
     } catch (err) {
+      toast({
+        title: 'There might be some error, Please Check and try again',
+        status: 'error',
+        isClosable: true,
+        position: 'top',
+        duration: 3000,
+      })
       console.error(err);
     }
   };
@@ -80,29 +114,32 @@ function EditSurgery(props) {
         <ModalOverlay />
         <ModalContent>
           <ModalBody pb={6}>
-            <FormControl mt={4}>
+            <FormControl mt={4} isRequired>
               <FormLabel>Surgeon Name</FormLabel>
               <Input
                 placeholder="Surgeon Name"
                 name="surgeon_name"
-                onChange={handleChange}
+                value={surgeonName}
+                onChange={(e) => setSurgeonName(e.target.value)}
               />
             </FormControl>
 
-            <FormControl mt={4}>
+            <FormControl mt={4} isRequired>
               <FormLabel>Surgery Type</FormLabel>
               <Input
                 placeholder="Surgery Type"
                 name="surgery_type"
-                onChange={handleChange}
+                value={surgeryType}
+                onChange={(e) => setSurgeryType(e.target.value)}
               />
             </FormControl>
-            <FormControl mt={4}>
+            <FormControl mt={4} isRequired>
               <FormLabel>Body Part</FormLabel>
               <Input
                 placeholder="Body Part"
                 name="body_part"
-                onChange={handleChange}
+                value={bodyPart}
+                onChange={(e) => setBodyPart(e.target.value)}
               />
             </FormControl>
 
@@ -111,7 +148,8 @@ function EditSurgery(props) {
               <Input
                 placeholder="Additional Surgeon"
                 name="additional_surgeon"
-                onChange={handleChange}
+                value={additionalSurgeon}
+                onChange={(e) => setAdditionalSurgeon(e.target.value)}
               />
             </FormControl>
 
@@ -120,7 +158,8 @@ function EditSurgery(props) {
               <Input
                 placeholder="Anesthesiologist"
                 name="anesthesiologist"
-                onChange={handleChange}
+                value={anesthesiologist}
+                onChange={(e) => setAnesthesiologist(e.target.value)}
               />
             </FormControl>
             <FormControl mt={4}>
@@ -128,7 +167,28 @@ function EditSurgery(props) {
               <Textarea
                 placeholder="Surgery History Details"
                 name="surgery_history_details"
-                onChange={handleChange}
+                value={surgeryHistoryDetails}
+                onChange={(e) => setSurgeryHistoryDetails(e.target.value)}
+              />
+            </FormControl>
+            <FormControl mt={4}>
+              <FormLabel>Surgery Date</FormLabel>
+              <Input
+                placeholder="Surgery Date"
+                name="surgery_date"
+                value={surgeryDate}
+                type="date"
+                onChange={(e) => setSurgeryDate(e.target.value)}
+              />
+            </FormControl>
+            <FormControl mt={4}>
+              <FormLabel>Operation Theatre Number</FormLabel>
+              <Input
+                placeholder="OT Number"
+                name="operation_theatre_number"
+                value={surgeryOperationTheatre}
+                type="number"
+                onChange={(e) => setSurgeryOperationTheatre(e.target.value)}
               />
             </FormControl>
           </ModalBody>
@@ -146,7 +206,7 @@ function EditSurgery(props) {
               _hover={{ background: '#0350a4' }}
               onClick={handleEdit}
             >
-              Edit
+              Save
             </Button>
             <Button
               onClick={onClose}

@@ -1,6 +1,6 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   Box,
   Button,
@@ -18,6 +18,8 @@ import {
   Heading,
   Text,
   Textarea,
+  Image,
+  useToast,
 } from '@chakra-ui/react';
 import ZoomOutIcon from '@mui/icons-material/ZoomOut';
 import ZoomInIcon from '@mui/icons-material/ZoomIn';
@@ -32,12 +34,12 @@ import useAuth from '../../User/Components/useAuth';
 import {
   addCommentOnSurgeryImage,
   deleteCommentOnSurgeryImage,
+  editCommentOnSurgeryImage,
+  getCommentOnSurgeryImage,
 } from '../../Config/api';
 
 function ImageViewer() {
-  const { auth } = useAuth();
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const { imageId } = useParams();
   const navigate = useNavigate();
   const zoomLevelRef = useRef(100);
   const [zoomLevel, setZoomLevel] = useState(100);
@@ -46,13 +48,14 @@ function ImageViewer() {
   const [rotationAngle, setRotationAngle] = useState(0);
   const [comments, setComments] = useState([]);
   const [commentModalOpen, setCommentModalOpen] = useState(false);
-  const data =
-    imageId && imageId.includes(',') ? imageId.split(',') : [imageId];
-  const [address, id] = data;
+  const [temp] = useSearchParams();
+  const address = temp.get('image_file');
+  const id = useParams().imageId;
   const [inputs, setInputs] = useState({
     comment_text: '',
     headline: '',
   });
+  const toast = useToast();
 
   const accessToken = localStorage.getItem('token');
   const headers = {
@@ -67,16 +70,18 @@ function ImageViewer() {
   const handleAdd = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
     try {
-      const accessToken = localStorage.getItem('token');
-      const headers = {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      };
       await axios.post(
         addCommentOnSurgeryImage(id),
         { ...inputs, image: id },
         { headers },
       );
+      toast({
+        title: 'Comment Added!',
+        status: 'success',
+        isClosable: true,
+        position: 'top',
+        duration: 3000,
+      });
       onClose();
     } catch (err) {
       console.log(err);
@@ -102,7 +107,7 @@ function ImageViewer() {
   };
   const updateZoomLevel = (newZoomLevel) => {
     const clampedZoomLevel = Math.max(50, Math.min(200, newZoomLevel));
-    const roundedZoomLevel = Math.round(clampedZoomLevel); // Round to the nearest integer
+    const roundedZoomLevel = Math.round(clampedZoomLevel);
     setZoomLevel(roundedZoomLevel);
     zoomLevelRef.current = roundedZoomLevel;
   };
@@ -127,10 +132,9 @@ function ImageViewer() {
     const getComments = async () => {
       try {
         if (id) {
-          const response = await axios.get(
-            `http://localhost:8000/api/patients/get-comment-on-surgery-image/${id}/`,
-            { headers },
-          );
+          const response = await axios.get(getCommentOnSurgeryImage(id), {
+            headers,
+          });
 
           if (response.data) {
             setComments(response.data);
@@ -143,21 +147,23 @@ function ImageViewer() {
       }
     };
     getComments();
-  }, [auth.access_token, id, comments, headers]);
+  }, [id, commentModalOpen]);
   const handleDeleteComment = async (commentId) => {
     try {
-      const response = await axios.delete(
+      await axios.delete(
         deleteCommentOnSurgeryImage(commentId),
         { headers },
       );
-
-      if (response.status === 200) {
-        console.log('Comment deleted successfully');
-      } else {
-        setComments((prevComments) =>
-          prevComments.filter((comment) => comment.comment_id !== commentId),
-        );
-      }
+      setComments((prevComments) =>
+        prevComments.filter((comment) => comment.comment_id !== commentId),
+      );
+      toast({
+        title: 'Comment Deleted',
+        status: 'success',
+        isClosable: true,
+        position: 'top',
+        duration: 3000,
+      });
     } catch (error) {
       console.error('Error deleting comment:', error.message);
     }
@@ -170,6 +176,35 @@ function ImageViewer() {
   };
   // Event Handlers End
 
+  const [commentInputs, setCommentInputs] = useState({
+    comment_text: '',
+    headline: '',
+    image: id,
+  });
+  const [editingComment, setEditingComment] = useState(null);
+  const handleCommentChange = (e) => {
+    setCommentInputs((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+  }
+  const handleUpdateComment = async (commentId) => {
+    try {
+      await axios.put(
+        editCommentOnSurgeryImage(commentId),
+        { ...commentInputs },
+        { headers },
+      );
+      toast({
+        title: 'Comment Updated Successfully!',
+        status: 'success',
+        isClosable: true,
+        position: 'top',
+        duration: 3000,
+      });
+      setEditingComment(null);
+      handleCloseCommentModal();
+    } catch (err) {
+      console.log(err);
+    }
+  }
   return (
     <Box
       className="popup-media"
@@ -195,14 +230,13 @@ function ImageViewer() {
         onMouseUp={handleMouseUp}
         onWheel={handleWheel}
       >
-        <img
+        <Image
           src={address}
           alt=""
           style={{
             objectFit: 'contain',
-            transform: `translate(${position.x}px, ${position.y}px) scale(${
-              zoomLevel / 100
-            }) rotate(${rotationAngle}deg) scale(${zoomLevel / 100})`,
+            transform: `translate(${position.x}px, ${position.y}px) scale(${zoomLevel / 100
+              }) rotate(${rotationAngle}deg) scale(${zoomLevel / 100})`,
             maxWidth: '100%',
             maxHeight: '100%',
             width: '100vw',
@@ -226,7 +260,7 @@ function ImageViewer() {
           <ModalHeader>Add Your Comment</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>
-            <FormControl>
+            <FormControl mb={6}>
               <FormLabel>Heading</FormLabel>
               <Input
                 placeholder="Heading"
@@ -337,6 +371,7 @@ function ImageViewer() {
                     <Button
                       background="none"
                       _hover={{ background: 'none', color: 'blue' }}
+                      onClick={() => setEditingComment(comment.comment_id)}
                     >
                       <EditIcon />
                     </Button>
@@ -354,6 +389,37 @@ function ImageViewer() {
               ),
             )}
           </ModalBody>
+          {editingComment && (
+            <ModalBody scrollBehavior="smooth" border="3px solid red" borderRadius="1rem" width="90%" alignSelf="center" mb={4} >
+              <ModalHeader>Edit Comment </ModalHeader>
+              <FormControl>
+                <FormLabel fontWeight="bold">HEADING</FormLabel>
+                <Input
+                  placeholder="Heading"
+                  name="headline"
+                  value={commentInputs.headline}
+                  onChange={handleCommentChange}
+                />
+              </FormControl>
+              <FormControl mt={2}>
+                <FormLabel fontWeight="bold">COMMENT</FormLabel>
+                <Textarea
+                  placeholder="Comment"
+                  name="comment_text"
+                  onChange={handleCommentChange}
+                  value={commentInputs.comment_text}
+                  resize="vertical"
+                />
+              </FormControl>
+              <ModalFooter mt={2}>
+                <Button colorScheme="blue" mr={3} onClick={() => handleUpdateComment(editingComment)}
+                >
+                  Update
+                </Button>
+                <Button onClick={() => setEditingComment(null)} background="red" color="white" _hover={{ background: "red.600" }}>Cancel</Button>
+              </ModalFooter>
+            </ModalBody>
+          )}
         </ModalContent>
       </Modal>
     </Box>

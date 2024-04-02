@@ -7,6 +7,7 @@ import AccessibilityIcon from '@mui/icons-material/Accessibility';
 import PersonIcon from '@mui/icons-material/Person';
 import LogoutIcon from '@mui/icons-material/Logout';
 import SettingsIcon from '@mui/icons-material/Settings';
+import { useColorModeValue } from '@chakra-ui/react';
 
 const links = [
   {
@@ -45,11 +46,16 @@ function Sidebar() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    console.log('Logged out');
+    localStorage.removeItem('token');
     navigate('/login');
   };
+
+  // For Dark Theme
+  // const textColor = useColorModeValue('black', 'white');
+  // For Dark Theme
+
   return (
+    // <Box className="sidebar" color={textColor}>
     <Box className="sidebar">
       <Box className="sidebar-top">
         {links.map((link) => {

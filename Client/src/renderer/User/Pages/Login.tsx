@@ -12,19 +12,17 @@ import {
   Heading,
   Text,
   useToast,
+  Image,
 } from '@chakra-ui/react';
 import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import logo from '../../Images/logo.png';
 import { loginUser } from '../../Config/api';
-import useAuth from '../Components/useAuth';
+// import logo from '../../../../assets/logo.png'
+import logo from '../../Images/logo.png';
 
 function Login() {
   const toast = useToast();
   const navigate = useNavigate();
-
-  const { setAuth, auth } = useAuth();
-
   const [inputs, setInputs] = useState({
     user_id_or_email: '',
     password: '',
@@ -33,47 +31,45 @@ function Login() {
   const handleChange = (e) => {
     setInputs((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
-
-  const [errMsg, setErrMsg] = useState('');
-
   const handleAdd = async (e) => {
     e.preventDefault();
     try {
       const { data } = await axios.post(loginUser(), inputs);
-      console.log('logged in');
       const accessToken = data?.access_token;
-      const refreshToken = data?.refresh_token;
-      setAuth({
-        ...inputs,
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
       localStorage.setItem('token', accessToken);
       toast({
         title: 'You Have Been Logged In',
         status: 'success',
         isClosable: true,
+        duration: 3000,
+        position: 'top',
       });
       navigate('/');
     } catch (err) {
-      if (!err?.response) {
-        setErrMsg('No Server Response');
-      } else if (err.response?.status === 400) {
+      if(err.response?.status === 400) {
         toast({
           title: 'Username/Email Or Password Is Missing',
-          status: 'error',
+          status: 'warning',
           isClosable: true,
+          duration: 2000,
+          position: 'bottom', 
         });
-        setErrMsg('Missing UserName or Password');
       } else if (err.response?.status === 401) {
         toast({
           title: 'You Have Entered Wrong Credentials',
-          status: 'warning',
+          status: 'error',
           isClosable: true,
+          duration: 2000,
+          position: 'bottom',
         });
-        setErrMsg('Unauthorized');
       } else {
-        setErrMsg('Login Failed');
+        toast({
+          title: 'Login Failed',
+          status: 'error',
+          isClosable: true,
+          duration: 2000,
+          position: 'bottom',
+        });
       }
     }
   };
@@ -101,7 +97,11 @@ function Login() {
           textAlign="center"
           flexDirection="column"
         >
-          <img src={logo} alt="Logo" className="logo" />
+          <Image
+            src={logo}
+            fontSize="2rem"
+            className="logo"
+          />
           <Heading className="heading">Log In</Heading>
           <VStack spacing="2rem" color="black">
             <FormControl isRequired>
@@ -129,7 +129,7 @@ function Login() {
                   </Button>
                 </InputRightElement>
               </InputGroup>
-              <Link to="www.google.com">Forgot Password</Link>
+              {/* <Link to="/forgot">Forgot Password</Link> */}
             </FormControl>
 
             <Button
@@ -142,12 +142,12 @@ function Login() {
                 Login
               </Link>
             </Button>
-            <Text>
+            {/* <Text>
               Don't Have An Account?{' '}
               <Link to="/register" style={{ color: 'rgba(0, 57, 117, 1)' }}>
                 Create One
               </Link>
-            </Text>
+            </Text> */}
           </VStack>
         </Box>
       </Container>

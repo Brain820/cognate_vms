@@ -1,4 +1,3 @@
-// import { EditIcon } from '@chakra-ui/icons'
 import { useEffect, useState } from 'react';
 import {
   Button,
@@ -17,13 +16,12 @@ import {
 } from '@chakra-ui/react';
 import axios from 'axios';
 import { editPatient } from '../../Config/api';
-import useAuth from '../../User/Components/useAuth';
 
 function EditPatient(props) {
   const toast = useToast();
   const { onOpen, onClose, isOpen } = useDisclosure();
 
-  const { Patient } = props;
+  const { Patient, getPatient } = props;
 
   const [patientId, setPatientId] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -42,9 +40,15 @@ function EditPatient(props) {
     setMobileNumber(Patient.mobile_number || '');
     setAddress(Patient.address || '');
     setPatientId(Patient.hospital_patient_id || '');
-  }, [Patient.address, Patient.date_of_birth, Patient.first_name, Patient.gender, Patient.hospital_patient_id, Patient.last_name, Patient.mobile_number]);
-
-  const { auth } = useAuth();
+  }, [
+    Patient.address,
+    Patient.date_of_birth,
+    Patient.first_name,
+    Patient.gender,
+    Patient.hospital_patient_id,
+    Patient.last_name,
+    Patient.mobile_number,
+  ]);
   const handleEdit = async (e) => {
     e.preventDefault();
     try {
@@ -67,13 +71,22 @@ function EditPatient(props) {
         title: 'Patient Data Has Been Updated',
         status: 'success',
         isClosable: true,
+        duration: 3000,
+        position: 'top',
       });
+      getPatient();
       onClose();
     } catch (err) {
+      toast({
+        title: 'There Might Be Some Error, Please check & Try Again',
+        status: 'error',
+        isClosable: true,
+        duration: 3000,
+        position: 'top',
+      });
       console.error(err);
     }
   };
-
 
   return (
     <>
@@ -93,7 +106,6 @@ function EditPatient(props) {
         <ModalOverlay />
         <ModalContent>
           <ModalBody pb={6}>
-
             <FormControl mt={4}>
               <FormLabel>Patient Id</FormLabel>
               <Input
@@ -102,58 +114,60 @@ function EditPatient(props) {
                 onChange={(e) => setPatientId(e.target.value)}
               />
             </FormControl>
-
-            <FormControl mt={4}>
+            <FormControl mt={4} isRequired>
               <FormLabel>First Name</FormLabel>
               <Input
                 placeholder="First Name"
                 name="first_name"
+                value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
               />
             </FormControl>
-
-            <FormControl mt={4}>
+            <FormControl mt={4} isRequired>
               <FormLabel>Last Name</FormLabel>
               <Input
                 placeholder="Last Name"
                 name="last_name"
+                value={lastName}
                 onChange={(e) => setLastName(e.target.value)}
               />
             </FormControl>
-
-            <FormControl mt={4}>
+            <FormControl mt={4} isRequired>
               <FormLabel>Date Of Birth</FormLabel>
               <Input
                 placeholder="Date Of Birth"
                 name="date_of_birth"
                 type="date"
+                value={dob}
                 onChange={(e) => setDob(e.target.value)}
               />
             </FormControl>
-            <FormControl mt={4}>
+            <FormControl mt={4} isRequired>
               <Select
                 placeholder="Select Gender"
                 name="gender"
+                value={Gender}
                 onChange={(e) => setGender(e.target.value)}
               >
                 <option value="Male">Male</option>
                 <option value="Female">Female</option>
               </Select>
             </FormControl>
-            <FormControl mt={4}>
+            <FormControl mt={4} isRequired>
               <FormLabel>Mobile Number</FormLabel>
               <Input
                 placeholder="Mobile Number"
                 name="mobile_number"
+                value={mobileNumber}
                 onChange={(e) => setMobileNumber(e.target.value)}
               />
             </FormControl>
-
-            <FormControl mt={4}>
+            <FormControl mt={4} isRequired>
               <FormLabel>Address</FormLabel>
               <Textarea
                 placeholder="Address"
                 name="address"
+                value={Address}
                 onChange={(e) => setAddress(e.target.value)}
               />
             </FormControl>
@@ -172,7 +186,7 @@ function EditPatient(props) {
               _hover={{ background: '#0350a4' }}
               onClick={handleEdit}
             >
-              Edit
+              Save
             </Button>
             <Button
               onClick={onClose}

@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 
 from pathlib import Path
 from .jwt_setting import SIMPLE_JWT
+from config import *
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -58,7 +59,7 @@ MIDDLEWARE = [
     # 'csp.middleware.CSPMiddleware',
 ]
 # Allow content security Policy
-X_FRAME_OPTIONS = "'ALLOW-FROM' 'http://localhost:3000'"#'SAMEORIGIN'#
+X_FRAME_OPTIONS ="'ALLOW-FROM' 'http://localhost:3000'"#'SAMEORIGIN'#
 # CSP_DEFAULT_SRC = ("'self'",)
 # CSP_IMG_SRC = ("'self'", "img.example.com")
 # CSP_SCRIPT_SRC = ("'self'", "scripts.example.com")
@@ -93,14 +94,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'OP_Vision.wsgi.application'
 
-
 # Database
 # https://docs.djangoproject.com/en/4.1/ref/settings/#databases
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': db_dir +'/db.sqlite3',
     }
 }
 

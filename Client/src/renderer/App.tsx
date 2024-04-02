@@ -4,7 +4,7 @@ import {
   Route,
 } from 'react-router-dom';
 
-import { Box } from '@mui/material';
+import { Box, ThemeProvider, theme, useColorMode, useColorModeValue } from '@chakra-ui/react';
 import './Styles/main.scss';
 import Home from './Home/Pages/Home';
 // import Sidebar from './Home/Components/Sidebar';
@@ -24,6 +24,8 @@ import Vedios from './Surgery/Pages/Vedios';
 import ImageViewer from './Surgery/Gallery/ImageViewer';
 import { CompanyProvider } from './Company/CompanyContext';
 import Receipt from './Company/Receipt';
+import ForgotPassword from './User/Pages/ForgotPassword';
+import { ColorModeProvider, CSSReset } from '@chakra-ui/react';
 
 // function Layout() {
 //   return (
@@ -52,15 +54,14 @@ export default function App() {
               <Route path="/profile" element={<Profile />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/doctor" element={<Doctor />} />
-              {/* <Route path="/receipt" element={<Receipt />} /> */}
+              {/* <Route path="/receipt/:patientData" element={<Receipt />} /> */}
             </Route>
             {/* </Route> */}
-            {/* <Route path="/recording" element={<Recording />} /> */}
             <Route path="/receipt/:patientData" element={<Receipt />} />
             <Route path="/recording/:surgeryId" element={<Recording />} />
             <Route path="/vedios/:videoId" element={<Vedios />} />
             <Route path="/images/:imageId" element={<ImageViewer />} />
-            {/* <Route path="/images/:imageId" element={<ImageViewer />} /> */}
+            <Route path="/forgot" element={<ForgotPassword />}/>
             <Route path="/register" element={<Register />} />
             <Route path="/login" element={<Login />} />
             <Route path="*" element={<ErrorPage />} />
